@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS user_criteria (
 CREATE TABLE IF NOT EXISTS sent_alerts (
     id SERIAL PRIMARY KEY,
     user_id BIGINT REFERENCES users(telegram_id),
-    annonce_id BIGINT REFERENCES fb_annonces_location(id), -- Assuming fb_annonces_location exists
+    annonce_id UUID REFERENCES fb_annonces_location(id),
     score_total INTEGER,
     score_criteres_stricts INTEGER,
     score_criteres_confort INTEGER,

@@ -1,6 +1,6 @@
 # FlattyBot 🏠
 
-FlattyBot est un bot Telegram intelligent qui aide les utilisateurs à trouver des appartements à Genève. Il utilise l'IA (OpenAI GPT-4) pour comprendre les besoins des utilisateurs et un système de scoring pour envoyer des alertes personnalisées en temps réel.
+FlattyBot est un bot Telegram intelligent qui aide les utilisateurs à trouver des appartements à Genève. Il utilise l'IA (OpenAI GPT-5) pour comprendre les besoins des utilisateurs et un système de scoring pour envoyer des alertes personnalisées en temps réel.
 
 ## Fonctionnalités
 

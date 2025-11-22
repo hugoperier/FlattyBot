@@ -5,13 +5,9 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 async function main() {
-    // Start Telegram Bot
-    await startBot();
-
-    // Start Polling Service
+    // Start Polling Service BEFORE bot (bot.start() is blocking)
     const pollingService = new PollingService();
-    // Poll every 3 minutes (180000 ms)
-    pollingService.startPolling(180000);
+    pollingService.startPolling(180000); // Poll every 3 minutes
 
     console.log('🚀 FlattyBot is running!');
 
@@ -26,6 +22,9 @@ async function main() {
         bot.stop();
         process.exit(0);
     });
+
+    // Start Telegram Bot (this call is blocking)
+    await startBot();
 }
 
 main().catch(console.error);

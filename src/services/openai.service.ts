@@ -73,8 +73,7 @@ export class OpenAIService {
         try {
             const completion = await openai.chat.completions.create({
                 messages: [{ role: "user", content: prompt }],
-                model: "gpt-4",
-                temperature: 0.1,
+                model: "gpt-5-nano",
                 response_format: { type: "json_object" }
             });
 

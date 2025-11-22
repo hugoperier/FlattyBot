@@ -1,7 +1,7 @@
 import { AdRepository } from '../repositories/ad.repository';
 import { UserRepository } from '../repositories/user.repository';
 import { AlertRepository } from '../repositories/alert.repository';
-import { ScoringService } from './scoring.service';
+import { ScoreResult, ScoringService } from './scoring.service';
 import { bot } from '../bot';
 import { Ad, User, UserCriteria } from '../types/database';
 
@@ -51,6 +51,7 @@ export class PollingService {
 
             // Calculate score
             const scoreResult = this.scoringService.calculateScore(ad, criteria);
+            console.log(scoreResult);
 
             // Thresholds
             // If score > 0 (meaning strict criteria met), we consider sending
@@ -64,7 +65,7 @@ export class PollingService {
         }
     }
 
-    private async sendAlert(userId: number, ad: Ad, score: any) {
+    private async sendAlert(userId: number, ad: Ad, score: ScoreResult) {
         // Format message
         const isPremium = score.score_total >= 120;
         let msg = "";
