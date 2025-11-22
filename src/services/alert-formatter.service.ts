@@ -1,13 +1,10 @@
 import { supabase } from '../config/supabase';
-import { Ad } from '../types/database';
+import { AdWithPost } from '../types/database';
 import { ScoreResult } from './scoring.service';
-import { FacebookPostRepository } from '../repositories/facebook-post.repository';
 
 export class AlertFormatterService {
-    private fbPostRepo: FacebookPostRepository;
-
     constructor() {
-        this.fbPostRepo = new FacebookPostRepository();
+        // No dependencies needed - we use joined data
     }
 
     /**
@@ -30,14 +27,10 @@ export class AlertFormatterService {
         }
 
         try {
-            console.log('Getting image URL for path:', imagePath);
-
             // Parse the path to handle subdirectories
             const pathParts = imagePath.split('/');
             const fileName = pathParts[pathParts.length - 1];
             const folder = pathParts.length > 1 ? pathParts.slice(0, -1).join('/') : '';
-
-            console.log('Checking in folder:', folder || '(root)', '- file:', fileName);
 
             // List files in the specific folder (without search parameter)
             const { data: fileList, error: listError } = await supabase.storage
@@ -51,17 +44,12 @@ export class AlertFormatterService {
                 return null;
             }
 
-            console.log('Available files:', fileList?.map(f => f.name).join(', ') || 'none');
-
             const fileExists = fileList && fileList.some(file => file.name === fileName);
 
             if (!fileExists) {
                 console.warn(`Image not found: ${imagePath}`);
-                console.log('Available files:', fileList?.map(f => f.name).join(', ') || 'none');
                 return null;
             }
-
-            console.log('Image found ✓');
 
             // File exists, create a signed URL (works with private bucket)
             // URL expires after 7 days (604800 seconds) - user can view old messages
@@ -75,7 +63,6 @@ export class AlertFormatterService {
             }
 
             if (data?.signedUrl) {
-                console.log('Signed URL generated (expires in 1h)');
                 return data.signedUrl;
             }
         } catch (error) {
@@ -87,22 +74,26 @@ export class AlertFormatterService {
 
     /**
      * Get the Facebook mobile permalink for an ad
+     * Uses the joined facebook_posts data - MUST exist due to INNER JOIN
      */
-    async getFacebookLink(ad: Ad): Promise<string> {
-        const permalink = await this.fbPostRepo.getMobilePermalink(ad.facebook_post_id);
+    getFacebookLink(ad: AdWithPost): string {
+        // The relation guarantees this exists (INNER JOIN)
+        const permalink = ad.facebook_posts.input_data?.permalink?.mobile;
 
         if (permalink) {
             return permalink;
         }
 
-        // Fallback to a generic Facebook link
-        return `https://www.facebook.com/${ad.facebook_post_id}`;
+        // Fallback to canonical or raw permalink if mobile not available
+        return ad.facebook_posts.input_data?.permalink?.canonical ||
+            ad.facebook_posts.input_data?.permalink?.raw ||
+            `https://www.facebook.com/${ad.facebook_posts.post_id}`;
     }
 
     /**
      * Format the alert message
      */
-    async formatAlertMessage(ad: Ad, score: ScoreResult): Promise<string> {
+    async formatAlertMessage(ad: AdWithPost, score: ScoreResult): Promise<string> {
         const isPremium = score.score_total >= 120;
         let msg = '';
 
@@ -179,7 +170,7 @@ export class AlertFormatterService {
         }
 
         // Facebook link
-        const fbLink = await this.getFacebookLink(ad);
+        const fbLink = this.getFacebookLink(ad);
         msg += `\n[👉 Voir l'annonce sur Facebook](${fbLink})`;
 
         return msg;

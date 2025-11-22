@@ -4,7 +4,7 @@ import { AlertRepository } from '../repositories/alert.repository';
 import { ScoreResult, ScoringService } from './scoring.service';
 import { AlertFormatterService } from './alert-formatter.service';
 import { bot } from '../bot';
-import { Ad, User, UserCriteria } from '../types/database';
+import { AdWithPost, User, UserCriteria } from '../types/database';
 
 export class PollingService {
     private adRepo: AdRepository;
@@ -41,7 +41,7 @@ export class PollingService {
         }
     }
 
-    private async processUser(user: User, ads: Ad[]) {
+    private async processUser(user: User, ads: AdWithPost[]) {
         const criteria = await this.userRepo.getCriteria(user.telegram_id);
         if (!criteria) return;
 
@@ -65,7 +65,7 @@ export class PollingService {
         }
     }
 
-    private async sendAlert(userId: number, ad: Ad, score: ScoreResult) {
+    private async sendAlert(userId: number, ad: AdWithPost, score: ScoreResult) {
         try {
             const formatter = new AlertFormatterService();
 

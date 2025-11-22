@@ -76,3 +76,7 @@ export interface SentAlert {
     sent_at?: string;
     user_action?: string;
 }
+
+export interface AdWithPost extends Ad {
+    facebook_posts: FacebookPost;
+}
