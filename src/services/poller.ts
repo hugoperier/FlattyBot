@@ -2,6 +2,7 @@ import { AdRepository } from '../repositories/ad.repository';
 import { UserRepository } from '../repositories/user.repository';
 import { AlertRepository } from '../repositories/alert.repository';
 import { ScoreResult, ScoringService } from './scoring.service';
+import { AlertFormatterService } from './alert-formatter.service';
 import { bot } from '../bot';
 import { Ad, User, UserCriteria } from '../types/database';
 
@@ -51,7 +52,6 @@ export class PollingService {
 
             // Calculate score
             const scoreResult = this.scoringService.calculateScore(ad, criteria);
-            console.log(scoreResult);
 
             // Thresholds
             // If score > 0 (meaning strict criteria met), we consider sending
@@ -66,32 +66,27 @@ export class PollingService {
     }
 
     private async sendAlert(userId: number, ad: Ad, score: ScoreResult) {
-        // Format message
-        const isPremium = score.score_total >= 120;
-        let msg = "";
-
-        if (isPremium) msg += "🌟 **MATCH PARFAIT** 🌟\n\n";
-        else msg += "🔔 **Nouvelle annonce correspondante**\n\n";
-
-        msg += `🏠 [${ad.type_logement}] ${ad.nombre_pieces} pièces - ${ad.surface_m2}m²\n`;
-        msg += `📍 ${ad.adresse_complete}, ${ad.code_postal} ${ad.ville}\n`;
-        msg += `💰 **${ad.loyer_total} CHF**\n\n`;
-
-        if (score.badges.length > 0) {
-            msg += `${score.badges.join(' ')}\n\n`;
-        }
-
-        if (score.criteres_confort_matches.length > 0) {
-            msg += `✅ Bonus: ${score.criteres_confort_matches.join(', ')}\n\n`;
-        }
-
-        msg += `[Voir l'annonce](https://facebook.com/${ad.facebook_post_id})`;
-        // Note: Assuming facebook_post_id is usable for link, or we need the full URL.
-        // The schema has `facebook_post_id`, usually we need `https://www.facebook.com/marketplace/item/${id}` or similar.
-        // I'll assume generic link for now.
-
         try {
-            await bot.api.sendMessage(userId, msg, { parse_mode: 'Markdown' });
+            const formatter = new AlertFormatterService();
+
+            // Format the message
+            const message = await formatter.formatAlertMessage(ad, score);
+
+            // Check if we have a valid image
+            const imageUrl = await formatter.getImageUrl(ad.image_path);
+
+            if (imageUrl) {
+                // Send with image
+                await bot.api.sendPhoto(userId, imageUrl, {
+                    caption: message,
+                    parse_mode: 'Markdown'
+                });
+            } else {
+                // Send text only
+                await bot.api.sendMessage(userId, message, {
+                    parse_mode: 'Markdown'
+                });
+            }
 
             // Save alert
             await this.alertRepo.saveAlert({

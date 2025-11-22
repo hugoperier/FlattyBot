@@ -20,25 +20,47 @@ export interface UserCriteria {
 export interface Ad {
     id: number;
     facebook_post_id: string;
-    adresse_complete: string;
-    ville: string;
-    code_postal: string;
-    quartier: string;
-    nombre_pieces: number;
-    type_logement: string;
-    surface_m2: number;
-    etage: number;
-    dernier_etage: boolean;
-    nombre_chambres: number;
-    balcon: boolean;
-    terrasse: boolean;
-    meuble: boolean;
-    loyer_mensuel: number;
-    loyer_total: number;
-    parking_inclus: boolean;
-    date_disponibilite: string;
-    urgence: boolean;
+    adresse_complete: string | null;
+    ville: string | null;
+    code_postal: string | null;
+    quartier: string | null;
+    nombre_pieces: number | null;
+    type_logement: string | null;
+    surface_m2: number | null;
+    etage: number | null;
+    dernier_etage: boolean | null;
+    nombre_chambres: number | null;
+    balcon: boolean | null;
+    terrasse: boolean | null;
+    meuble: boolean | null;
+    loyer_mensuel: number | null;
+    loyer_total: number | null;
+    parking_inclus: boolean | null;
+    date_disponibilite: string | null;
+    urgence: boolean | null;
+    image_path: string | null;
     created_at: string;
+}
+
+export interface FacebookPost {
+    id: string;
+    post_id: string;
+    input_data: {
+        permalink?: {
+            raw: string;
+            mobile: string;
+            canonical: string;
+        };
+        [key: string]: any; // Other JSONB fields
+    };
+    time_posted: string;
+    categorie: string;
+    confiance: number;
+    raison_classification: string;
+    est_offre_location: boolean;
+    processed_at: string | null;
+    created_at: string | null;
+    group_name: string;
 }
 
 export interface SentAlert {

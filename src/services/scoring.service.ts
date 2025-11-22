@@ -42,7 +42,7 @@ export class ScoringService {
 
         // 2. Budget (30 pts)
         if (stricts.budget_max) {
-            if (ad.loyer_total <= stricts.budget_max) {
+            if (ad.loyer_total && ad.loyer_total <= stricts.budget_max) {
                 scoreStricts += 30;
                 strictMatches.push('Budget');
 
@@ -50,6 +50,9 @@ export class ScoringService {
                 if (ad.loyer_total <= stricts.budget_max * 0.85) {
                     badges.push('💎 Prix exceptionnel');
                 }
+            } else if (!ad.loyer_total) {
+                // If price is not available, don't fail but don't award points
+                scoreStricts += 30; // Give benefit of doubt
             } else {
                 strictFail = true;
             }
@@ -59,15 +62,20 @@ export class ScoringService {
 
         // 3. Nombre de pièces (25 pts)
         if (stricts.nombre_pieces_min || stricts.nombre_pieces_max) {
-            let match = true;
-            if (stricts.nombre_pieces_min && ad.nombre_pieces < stricts.nombre_pieces_min) match = false;
-            if (stricts.nombre_pieces_max && ad.nombre_pieces > stricts.nombre_pieces_max) match = false;
+            if (ad.nombre_pieces !== null) {
+                let match = true;
+                if (stricts.nombre_pieces_min && ad.nombre_pieces < stricts.nombre_pieces_min) match = false;
+                if (stricts.nombre_pieces_max && ad.nombre_pieces > stricts.nombre_pieces_max) match = false;
 
-            if (match) {
-                scoreStricts += 25;
-                strictMatches.push('Pièces');
+                if (match) {
+                    scoreStricts += 25;
+                    strictMatches.push('Pièces');
+                } else {
+                    strictFail = true;
+                }
             } else {
-                strictFail = true;
+                // If number of pieces is not available, give benefit of doubt
+                scoreStricts += 25;
             }
         } else {
             scoreStricts += 25;
@@ -75,12 +83,17 @@ export class ScoringService {
 
         // 4. Type logement (15 pts)
         if (stricts.type_logement && stricts.type_logement.length > 0) {
-            const typeMatch = stricts.type_logement.some(t => ad.type_logement.toLowerCase().includes(t.toLowerCase()));
-            if (typeMatch) {
-                scoreStricts += 15;
-                strictMatches.push('Type');
+            if (ad.type_logement) {
+                const typeMatch = stricts.type_logement.some(t => ad.type_logement!.toLowerCase().includes(t.toLowerCase()));
+                if (typeMatch) {
+                    scoreStricts += 15;
+                    strictMatches.push('Type');
+                } else {
+                    strictFail = true;
+                }
             } else {
-                strictFail = true;
+                // If type is not available, give benefit of doubt
+                scoreStricts += 15;
             }
         } else {
             scoreStricts += 15;

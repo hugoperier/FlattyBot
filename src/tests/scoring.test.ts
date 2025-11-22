@@ -24,6 +24,7 @@ const mockAd: Ad = {
     parking_inclus: false,
     date_disponibilite: '2023-12-01',
     urgence: false,
+    image_path: null,
     created_at: new Date().toISOString()
 };
 
