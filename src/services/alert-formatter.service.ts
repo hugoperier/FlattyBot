@@ -18,6 +18,56 @@ export class AlertFormatterService {
     }
 
     /**
+     * Format time_posted to relative time in French (UX-friendly)
+     * Converts "2025-11-20 12:48:27.649244+00" to "il y a 2 jours" or "20 nov. 2025 à 12h48"
+     */
+    private formatTimePosted(timePosted: string): string {
+        try {
+            const posted = new Date(timePosted);
+            const now = new Date();
+            const diffMs = now.getTime() - posted.getTime();
+            const diffMinutes = Math.floor(diffMs / (1000 * 60));
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+            // Less than 1 hour: "il y a X minutes"
+            if (diffMinutes < 60) {
+                if (diffMinutes < 1) return 'À l\'instant';
+                if (diffMinutes === 1) return 'il y a 1 minute';
+                return `il y a ${diffMinutes} minutes`;
+            }
+
+            // Less than 24 hours: "il y a X heures"
+            if (diffHours < 24) {
+                if (diffHours === 1) return 'il y a 1 heure';
+                return `il y a ${diffHours} heures`;
+            }
+
+            // Less than 7 days: "il y a X jours"
+            if (diffDays < 7) {
+                if (diffDays === 1) return 'il y a 1 jour';
+                return `il y a ${diffDays} jours`;
+            }
+
+            // 7+ days: show exact date and time
+            const months = [
+                'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin',
+                'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'
+            ];
+            const day = posted.getDate();
+            const month = months[posted.getMonth()];
+            const year = posted.getFullYear();
+            const hours = posted.getHours().toString().padStart(2, '0');
+            const minutes = posted.getMinutes().toString().padStart(2, '0');
+
+            return `${day} ${month} ${year} à ${hours}h${minutes}`;
+        } catch (error) {
+            console.error('Error formatting time_posted:', error);
+            return 'Date inconnue';
+        }
+    }
+
+    /**
      * Get the public URL for an image from Supabase bucket
      */
     async getImageUrl(imagePath: string | null): Promise<string | null> {
@@ -103,6 +153,10 @@ export class AlertFormatterService {
         } else {
             msg += '🔔 **Nouvelle annonce correspondante**\n\n';
         }
+
+        // Time posted
+        const timePosted = this.formatTimePosted(ad.facebook_posts.time_posted);
+        msg += `🕒 Publié ${timePosted}\n\n`;
 
         // Property details
         const type = this.formatValue(ad.type_logement, 'Logement');
