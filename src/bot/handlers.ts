@@ -14,16 +14,40 @@ export function setupHandlers(bot: Bot<MyContext>) {
     bot.command('start', async (ctx) => {
         ctx.session.step = 'ONBOARDING_WAITING_DESCRIPTION';
 
+        // Initialize conversation history
+        ctx.session.conversationHistory = [];
+
+        // Load existing criteria if user already has some
+        if (ctx.from?.id) {
+            const existingCriteria = await userRepository.getCriteria(ctx.from.id);
+            if (existingCriteria) {
+                // Convert DB format to ExtractedCriteria format
+                ctx.session.existingCriteria = {
+                    criteres_stricts: existingCriteria.criteres_stricts,
+                    criteres_confort: existingCriteria.criteres_confort,
+                    criteres_manquants: [],
+                    confiance: existingCriteria.confiance_extraction,
+                    resume_humain: existingCriteria.resume_humain
+                };
+            }
+        }
+
         const keyboard = new InlineKeyboard()
             .text("❌ Annuler", "cancel_onboarding");
 
-        await ctx.reply(
-            "👋 Salut ! Je suis FlattyBot.\n\n" +
+        const message = ctx.session.existingCriteria
+            ? "🔄 **Modification de tes critères**\n\n" +
+            "Tu as déjà des critères définis. Dis-moi ce que tu veux changer ou reformule entièrement ta recherche.\n\n" +
+            "Exemples :\n" +
+            "• \"Je veux monter mon budget à 2800 CHF\"\n" +
+            "• \"J'aimerais aussi un balcon\"\n" +
+            "• \"Finalement je cherche plutôt à Plainpalais\""
+            : "👋 Salut ! Je suis FlattyBot.\n\n" +
             "Je vais t'aider à trouver l'appartement idéal à Genève. 🏠\n\n" +
             "Dis-moi ce que tu cherches en quelques phrases.\n" +
-            "Exemple : *'Je cherche un 3 pièces à Carouge ou Plainpalais, max 2500 CHF. J'aimerais un balcon et si possible le dernier étage.'*",
-            { parse_mode: 'Markdown', reply_markup: keyboard }
-        );
+            "Exemple : *'Je cherche un 3 pièces à Carouge ou Plainpalais, max 2500 CHF. J'aimerais un balcon et si possible le dernier étage.'*";
+
+        await ctx.reply(message, { parse_mode: 'Markdown', reply_markup: keyboard });
     });
 
     // /menu
@@ -42,14 +66,36 @@ export function setupHandlers(bot: Bot<MyContext>) {
         if (ctx.session.step === 'ONBOARDING_WAITING_DESCRIPTION') {
             const description = ctx.message.text;
 
+            // Add user message to conversation history
+            if (!ctx.session.conversationHistory) {
+                ctx.session.conversationHistory = [];
+            }
+            ctx.session.conversationHistory.push({
+                role: 'user',
+                content: description,
+                timestamp: new Date().toISOString()
+            });
+
             await ctx.reply("🔍 J'analyse ta demande... (ça prend quelques secondes)");
 
             try {
-                const criteria = await openaiService.extractCriteria(description);
+                // Extract criteria with context
+                const criteria = await openaiService.extractCriteria(description, {
+                    conversationHistory: ctx.session.conversationHistory,
+                    existingCriteria: ctx.session.existingCriteria
+                });
+
                 ctx.session.tempCriteria = criteria;
                 ctx.session.step = 'ONBOARDING_WAITING_CONFIRMATION';
 
                 const summary = formatCriteriaSummary(criteria);
+
+                // Add assistant response to conversation history
+                ctx.session.conversationHistory.push({
+                    role: 'assistant',
+                    content: summary,
+                    timestamp: new Date().toISOString()
+                });
 
                 const keyboard = new InlineKeyboard()
                     .text("✅ C'est tout bon !", "confirm_criteria").row()
@@ -82,6 +128,8 @@ export function setupHandlers(bot: Bot<MyContext>) {
 
             ctx.session.step = 'IDLE';
             ctx.session.tempCriteria = undefined;
+            ctx.session.conversationHistory = undefined;
+            ctx.session.existingCriteria = undefined;
 
             await ctx.editMessageText("✅ Critères enregistrés ! Je commence à chercher pour toi. 🚀");
             await ctx.answerCallbackQuery();
@@ -105,6 +153,8 @@ export function setupHandlers(bot: Bot<MyContext>) {
         // Reset session state
         ctx.session.step = 'IDLE';
         ctx.session.tempCriteria = undefined;
+        ctx.session.conversationHistory = undefined;
+        ctx.session.existingCriteria = undefined;
 
         await ctx.editMessageText(
             "❌ Onboarding annulé.\n\n" +
