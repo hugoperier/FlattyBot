@@ -173,15 +173,20 @@ export class AlertFormatterService {
         }
         msg += '\n';
 
-        // Location
-        const quartier = ad.quartier ? `${ad.quartier}, ` : '';
-        const codePostal = this.formatValue(ad.code_postal, '');
-        const ville = this.formatValue(ad.ville, 'Genève');
-        const adresse = ad.adresse_complete || 'Adresse non communiquée';
+        // Location - Show EITHER complete address OR quartier/code_postal/ville
+        const adresse = ad.adresse_complete;
 
-        msg += `📍 ${quartier}${codePostal} ${ville}\n`;
-        if (adresse !== 'Adresse non communiquée') {
-            msg += `   ${adresse}\n`;
+        if (adresse && adresse !== '') {
+            // If we have a complete address, show it as a clickable Google Maps link
+            const encodedAddress = encodeURIComponent(adresse);
+            const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+            msg += `📍 [${adresse}](${mapsUrl})\n`;
+        } else {
+            // Otherwise, show quartier/code_postal/ville
+            const quartier = ad.quartier ? `${ad.quartier}, ` : '';
+            const codePostal = this.formatValue(ad.code_postal, '');
+            const ville = this.formatValue(ad.ville, 'Genève');
+            msg += `📍 ${quartier}${codePostal} ${ville}\n`;
         }
 
         // Price

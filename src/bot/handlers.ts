@@ -2,11 +2,13 @@ import { Bot, InlineKeyboard } from 'grammy';
 import { MyContext } from './context';
 import { OpenAIService } from '../services/openai.service';
 import { UserRepository } from '../repositories/user.repository';
+import { AlertRepository } from '../repositories/alert.repository';
 import { formatCriteriaSummary } from '../utils/formatting';
 import { supabase } from '../config/supabase';
 
 const openaiService = new OpenAIService();
 const userRepository = new UserRepository();
+const alertRepository = new AlertRepository();
 
 export function setupHandlers(bot: Bot<MyContext>) {
 
@@ -180,6 +182,63 @@ export function setupHandlers(bot: Bot<MyContext>) {
         } else {
             await ctx.reply("Tu n'as pas encore défini de critères. Fais /start !");
         }
+        await ctx.answerCallbackQuery();
+    });
+
+    bot.callbackQuery('view_alerts', async (ctx) => {
+        if (!ctx.from?.id) return;
+
+        const alerts = await alertRepository.getUserAlerts(ctx.from.id, 10);
+
+        if (alerts.length === 0) {
+            await ctx.reply("Tu n'as encore reçu aucune alerte. 📭\n\nJe te préviendrai dès qu'une annonce correspondant à tes critères sera publiée ! 🔔");
+            await ctx.answerCallbackQuery();
+            return;
+        }
+
+        // Get ad details for each alert
+        const alertsWithDetails = await Promise.all(
+            alerts.map(async (alert) => {
+                const { data: ad } = await supabase
+                    .from('fb_annonces_location')
+                    .select(`
+                        *,
+                        facebook_posts (
+                            post_id,
+                            time_posted,
+                            input_data
+                        )
+                    `)
+                    .eq('id', alert.annonce_id)
+                    .single();
+                return { alert, ad };
+            })
+        );
+
+        let message = `🔔 **Tes ${alerts.length} dernières alertes**\n\n`;
+
+        alertsWithDetails.forEach(({ alert, ad }, index) => {
+            if (!ad) return;
+
+            const type = ad.type_logement || 'Logement';
+            const pieces = ad.nombre_pieces
+                ? `${ad.nombre_pieces} pièce${ad.nombre_pieces > 1 ? 's' : ''}`
+                : '';
+            const prix = ad.loyer_total ? `${ad.loyer_total} CHF` : 'Prix à discuter';
+            const quartier = ad.quartier || ad.ville || 'Genève';
+
+            message += `**${index + 1}.** ${type}${pieces ? ` - ${pieces}` : ''}\n`;
+            message += `📍 ${quartier} • 💰 ${prix}\n`;
+            message += `⭐️ Score: ${alert.score_total}/100`;
+            if (alert.badges.length > 0) {
+                message += ` ${alert.badges.join(' ')}`;
+            }
+            message += `\n\n`;
+        });
+
+        message += `💡 *Utilise /menu pour voir toutes les options*`;
+
+        await ctx.reply(message, { parse_mode: 'Markdown' });
         await ctx.answerCallbackQuery();
     });
 
