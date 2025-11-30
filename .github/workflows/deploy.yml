@@ -1,0 +1,38 @@
+name: Build and Deploy FlattyBot
+
+on:
+  release:
+    types: [created]
+
+env:
+  REGISTRY: registry.hugosoft.dev/
+  IMAGE_NAME: flattybot
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    name: Build and publish FlattyBot to Container Registry
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: Log in to Hugosoft Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}${{ env.IMAGE_NAME }}:${{ github.event.release.tag_name }}
+          secrets: |
+            "telegram_token=${{ secrets.TELEGRAM_BOT_TOKEN }}"
+            "openai_key=${{ secrets.OPENAI_API_KEY }}"
+            "supabase_url=${{ secrets.SUPABASE_URL }}"
+            "supabase_key=${{ secrets.SUPABASE_KEY }}"

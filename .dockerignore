@@ -1,0 +1,49 @@
+# Node modules (will be installed in container)
+node_modules
+npm-debug.log
+
+# Build output (will be generated in container)
+dist
+
+# Environment files (never include in image - secrets!)
+.env
+.env.*
+*.env
+
+# Git files
+.git
+.gitignore
+.github
+
+# Development tools
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Testing
+coverage
+.nyc_output
+
+# Documentation
+README.md
+*.md
+docs
+
+# CI/CD
+.gitlab-ci.yml
+.travis.yml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+
+# Temporary files
+tmp
+temp
+*.tmp

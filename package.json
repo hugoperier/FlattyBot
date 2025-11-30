@@ -6,6 +6,7 @@
   "scripts": {
     "test": "ts-node src/tests/run_tests.ts",
     "start": "ts-node src/index.ts",
+    "build": "tsc",
     "dev": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts",
     "filter-test": "ts-node src/tools/filter-tester.ts"
   },
