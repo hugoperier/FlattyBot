@@ -25,7 +25,8 @@ export function formatCriteriaSummary(criteria: ExtractedCriteria): string {
     msg += `\n🤖 **Résumé**: ${criteria.resume_humain}\n`;
 
     if (criteria.criteres_manquants.length > 0) {
-        msg += `\n⚠️ **Il me manque ces infos importantes** : ${criteria.criteres_manquants.join(', ')}\n`;
+        const manquants = criteria.criteres_manquants.map(c => `\`${c}\``).join(', ');
+        msg += `\n⚠️ **Il me manque ces infos importantes** : ${manquants}\n`;
     }
 
     return msg;

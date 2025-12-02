@@ -3,6 +3,8 @@ export interface User {
     is_active: boolean;
     is_paused: boolean;
     onboarding_completed: boolean;
+    pending_authorization?: boolean;
+    authorized_at?: string;
     created_at: string;
     last_interaction: string;
 }

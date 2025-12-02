@@ -5,6 +5,7 @@ import { UserRepository } from '../repositories/user.repository';
 import { AlertRepository } from '../repositories/alert.repository';
 import { formatCriteriaSummary } from '../utils/formatting';
 import { supabase } from '../config/supabase';
+import { ADMIN_TELEGRAM_ID } from '../config/admin';
 
 const openaiService = new OpenAIService();
 const userRepository = new UserRepository();
@@ -14,24 +15,45 @@ export function setupHandlers(bot: Bot<MyContext>) {
 
     // /start
     bot.command('start', async (ctx) => {
+        if (!ctx.from?.id) return;
+
+        // Get user (will always exist because of middleware)
+        const user = await userRepository.getUser(ctx.from.id);
+
+        if (!user) {
+            await ctx.reply("❌ Une erreur s'est produite. Merci de réessayer.");
+            return;
+        }
+
+        // If user is pending authorization
+        if (user.pending_authorization) {
+            ctx.session.step = 'AWAITING_AUTHORIZATION';
+            await ctx.reply(
+                "⏳ **Demande en cours**\n\n" +
+                "Ta demande d'accès est en attente de validation par l'administrateur.\n\n" +
+                "_Tu seras notifié dès que ton accès sera validé._",
+                { parse_mode: 'Markdown' }
+            );
+            return;
+        }
+
+        // User is authorized, proceed with normal onboarding
         ctx.session.step = 'ONBOARDING_WAITING_DESCRIPTION';
 
         // Initialize conversation history
         ctx.session.conversationHistory = [];
 
         // Load existing criteria if user already has some
-        if (ctx.from?.id) {
-            const existingCriteria = await userRepository.getCriteria(ctx.from.id);
-            if (existingCriteria) {
-                // Convert DB format to ExtractedCriteria format
-                ctx.session.existingCriteria = {
-                    criteres_stricts: existingCriteria.criteres_stricts,
-                    criteres_confort: existingCriteria.criteres_confort,
-                    criteres_manquants: [],
-                    confiance: existingCriteria.confiance_extraction,
-                    resume_humain: existingCriteria.resume_humain
-                };
-            }
+        const existingCriteria = await userRepository.getCriteria(ctx.from.id);
+        if (existingCriteria) {
+            // Convert DB format to ExtractedCriteria format
+            ctx.session.existingCriteria = {
+                criteres_stricts: existingCriteria.criteres_stricts,
+                criteres_confort: existingCriteria.criteres_confort,
+                criteres_manquants: [],
+                confiance: existingCriteria.confiance_extraction,
+                resume_humain: existingCriteria.resume_humain
+            };
         }
 
         const keyboard = new InlineKeyboard()
@@ -52,6 +74,8 @@ export function setupHandlers(bot: Bot<MyContext>) {
         await ctx.reply(message, { parse_mode: 'Markdown', reply_markup: keyboard });
     });
 
+
+
     // /menu
     bot.command('menu', async (ctx) => {
         const keyboard = new InlineKeyboard()
@@ -65,6 +89,15 @@ export function setupHandlers(bot: Bot<MyContext>) {
 
     // Handle text messages
     bot.on('message:text', async (ctx) => {
+        // Ignore messages if user is awaiting authorization
+        if (ctx.session.step === 'AWAITING_AUTHORIZATION') {
+            await ctx.reply(
+                "⏳ Ta demande d'accès est en cours de validation.\n\n" +
+                "_Tu seras notifié dès que l'administrateur aura validé ton accès._"
+            );
+            return;
+        }
+
         if (ctx.session.step === 'ONBOARDING_WAITING_DESCRIPTION') {
             const description = ctx.message.text;
 
@@ -476,6 +509,84 @@ export function setupHandlers(bot: Bot<MyContext>) {
             .text("❓ Aide", "help");
 
         await ctx.editMessageText("Menu Principal", { reply_markup: keyboard });
+        await ctx.answerCallbackQuery();
+    });
+
+    // === AUTHORIZATION SYSTEM ===
+
+    // Handle user approval by admin
+    bot.callbackQuery(/^approve_user_(\d+)$/, async (ctx) => {
+        const match = ctx.callbackQuery.data.match(/^approve_user_(\d+)$/);
+        if (!match) return;
+
+        const userIdToApprove = parseInt(match[1]);
+
+        // Authorize the user in database
+        const success = await userRepository.authorizeUser(userIdToApprove);
+
+        if (success) {
+            // Update admin's message
+            await ctx.editMessageText(
+                `✅ **Utilisateur approuvé**\n\n` +
+                `L'utilisateur \`${userIdToApprove}\` a été autorisé à utiliser le bot.\n` +
+                `Il a été notifié et peut maintenant commencer l'onboarding.`,
+                { parse_mode: 'Markdown' }
+            );
+
+            // Notify the user
+            try {
+                await bot.api.sendMessage(
+                    userIdToApprove,
+                    "🎉 **Ton accès a été validé !**\n\n" +
+                    "Tu peux maintenant utiliser FlattyBot. Fais /start pour commencer à configurer tes critères de recherche. 🚀",
+                    { parse_mode: 'Markdown' }
+                );
+            } catch (error) {
+                console.error('Error notifying approved user:', error);
+            }
+        } else {
+            await ctx.reply("❌ Erreur lors de l'autorisation de l'utilisateur.");
+        }
+
+        await ctx.answerCallbackQuery();
+    });
+
+    // Handle user rejection by admin
+    bot.callbackQuery(/^reject_user_(\d+)$/, async (ctx) => {
+        const match = ctx.callbackQuery.data.match(/^reject_user_(\d+)$/);
+        if (!match) return;
+
+        const userIdToReject = parseInt(match[1]);
+
+        // Delete the user from database
+        const { error } = await supabase
+            .from('users')
+            .delete()
+            .eq('telegram_id', userIdToReject);
+
+        if (!error) {
+            // Update admin's message
+            await ctx.editMessageText(
+                `❌ **Utilisateur rejeté**\n\n` +
+                `L'utilisateur \`${userIdToReject}\` a été rejeté et supprimé de la base de données.`,
+                { parse_mode: 'Markdown' }
+            );
+
+            // Optionally notify the user
+            try {
+                await bot.api.sendMessage(
+                    userIdToReject,
+                    "❌ **Demande d'accès refusée**\n\n" +
+                    "Désolé, ton accès à FlattyBot n'a pas été autorisé.",
+                    { parse_mode: 'Markdown' }
+                );
+            } catch (error) {
+                console.error('Error notifying rejected user:', error);
+            }
+        } else {
+            await ctx.reply("❌ Erreur lors du rejet de l'utilisateur.");
+        }
+
         await ctx.answerCallbackQuery();
     });
 }

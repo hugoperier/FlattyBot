@@ -5,7 +5,11 @@ export class UserRepository {
     async createUser(telegramId: number): Promise<User | null> {
         const { data, error } = await supabase
             .from('users')
-            .upsert({ telegram_id: telegramId, last_interaction: new Date().toISOString() })
+            .upsert({
+                telegram_id: telegramId,
+                last_interaction: new Date().toISOString(),
+                pending_authorization: true
+            })
             .select()
             .single();
 
@@ -78,4 +82,34 @@ export class UserRepository {
         }
         return data || [];
     }
+
+    async authorizeUser(telegramId: number): Promise<boolean> {
+        const { error } = await supabase
+            .from('users')
+            .update({
+                pending_authorization: false,
+                authorized_at: new Date().toISOString()
+            })
+            .eq('telegram_id', telegramId);
+
+        if (error) {
+            console.error('Error authorizing user:', error);
+            return false;
+        }
+        return true;
+    }
+
+    async getPendingAuthorizationUsers(): Promise<User[]> {
+        const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('pending_authorization', true);
+
+        if (error) {
+            console.error('Error fetching pending authorization users:', error);
+            return [];
+        }
+        return data || [];
+    }
 }
+

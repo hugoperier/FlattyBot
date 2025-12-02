@@ -1,9 +1,10 @@
-import { Bot, session } from 'grammy';
+import { Bot, session, InlineKeyboard } from 'grammy';
 import dotenv from 'dotenv';
 import { MyContext, SessionData } from './context';
 import { UserRepository } from '../repositories/user.repository';
 import { OpenAIService } from '../services/openai.service';
 import { setupHandlers } from './handlers';
+import { ADMIN_TELEGRAM_ID } from '../config/admin';
 
 dotenv.config();
 
@@ -20,15 +21,41 @@ function initial(): SessionData {
 }
 bot.use(session({ initial }));
 
-// Middleware to ensure user exists in DB
+// Middleware to handle user creation and authorization
 bot.use(async (ctx, next) => {
     if (ctx.from?.id) {
-        // In production, maybe cache this to avoid DB hit on every message
-        // For now, we just ensure user is created on first interaction
         const user = await userRepository.getUser(ctx.from.id);
+
         if (!user) {
-            await userRepository.createUser(ctx.from.id);
+            // Create new user with pending authorization
+            const newUser = await userRepository.createUser(ctx.from.id);
+
+            if (newUser && ADMIN_TELEGRAM_ID) {
+                // Send notification to admin
+                const username = ctx.from.username ? `@${ctx.from.username}` : 'Sans username';
+                const firstName = ctx.from.first_name || 'Utilisateur';
+                const lastName = ctx.from.last_name ? ` ${ctx.from.last_name}` : '';
+
+                const keyboard = new InlineKeyboard()
+                    .text("✅ Approuver", `approve_user_${ctx.from.id}`)
+                    .text("❌ Rejeter", `reject_user_${ctx.from.id}`);
+
+                try {
+                    await bot.api.sendMessage(
+                        ADMIN_TELEGRAM_ID,
+                        `🔔 **Nouvelle demande d'accès**\n\n` +
+                        `👤 **Utilisateur** : ${firstName}${lastName}\n` +
+                        `📱 **Username** : ${username}\n` +
+                        `🆔 **Telegram ID** : \`${ctx.from.id}\`\n\n` +
+                        `Voulez-vous autoriser cet utilisateur ?`,
+                        { parse_mode: 'Markdown', reply_markup: keyboard }
+                    );
+                } catch (error) {
+                    console.error('Error sending admin notification:', error);
+                }
+            }
         } else {
+            // Update last interaction for existing users
             await userRepository.updateLastInteraction(ctx.from.id);
         }
     }
