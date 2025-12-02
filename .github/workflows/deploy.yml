@@ -36,3 +36,4 @@ jobs:
             "openai_key=${{ secrets.OPENAI_API_KEY }}"
             "supabase_url=${{ secrets.SUPABASE_URL }}"
             "supabase_key=${{ secrets.SUPABASE_KEY }}"
+            "admin_telegram_id=${{ secrets.ADMIN_TELEGRAM_ID }}"
