@@ -26,11 +26,17 @@ interface LocationData {
 export class LocationRepository {
     private data: LocationData;
     private canonicalLocations: Set<string>;
+    private dbTermsMapping: { [key: string]: string };
 
     constructor() {
         const filePath = path.join(process.cwd(), 'src', 'data', 'known_locations.json');
         const fileContent = fs.readFileSync(filePath, 'utf-8');
         this.data = JSON.parse(fileContent);
+
+        const dbMappingPath = path.join(process.cwd(), 'src', 'data', 'db_terms_mapping.json');
+        const dbMappingContent = fs.readFileSync(dbMappingPath, 'utf-8');
+        this.dbTermsMapping = JSON.parse(dbMappingContent);
+
         this.canonicalLocations = this.loadCanonicalLocations();
     }
 
@@ -82,6 +88,16 @@ export class LocationRepository {
             }
         }
 
+        return errors;
+    }
+
+    public validateDbTermsConsistency(): string[] {
+        const errors: string[] = [];
+        for (const [term, target] of Object.entries(this.dbTermsMapping)) {
+            if (!this.canonicalLocations.has(target)) {
+                errors.push(`[INVALID DB TARGET] Term "${term}" maps to "${target}", which is NOT a canonical location.`);
+            }
+        }
         return errors;
     }
 }

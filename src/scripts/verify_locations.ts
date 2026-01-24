@@ -43,6 +43,18 @@ async function main() {
     });
 
     console.log('');
+
+    // 3. Validate DB Terms Mapping Consistency
+    console.log('--- Checking DB Terms Mapping Consistency ---');
+    const dbMappingErrors = locationRepo.validateDbTermsConsistency();
+    if (dbMappingErrors.length > 0) {
+        dbMappingErrors.forEach(err => console.error(err));
+        issueCount += dbMappingErrors.length;
+    } else {
+        console.log('✅ DB Terms mapping consistency check passed.');
+    }
+
+    console.log('');
     if (issueCount === 0) {
         console.log('✅ All checks passed successfully!');
     } else {
