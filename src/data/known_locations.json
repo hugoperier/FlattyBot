@@ -1,0 +1,1162 @@
+{
+  "metadata": {
+    "description": "Dictionnaire exhaustif de normalisation toponymique pour Genève et son canton",
+    "version": "1.0",
+    "last_updated": "2026-01-24",
+    "purpose": "Moteur de recherche de lieux génevois avec gestion des variantes, lieux-dits et termes vagues",
+    "notes": "Toutes les clés sont en minuscules et sans accents. Les valeurs correspondent exactement aux lieux canoniques."
+  },
+  "lieux_canoniques": {
+    "communes": [
+      "Aire-la-Ville",
+      "Anières",
+      "Avully",
+      "Avusy",
+      "Bardonnex",
+      "Bellevue",
+      "Bernex",
+      "Carouge",
+      "Cartigny",
+      "Céligny",
+      "Chancy",
+      "Chêne-Bougeries",
+      "Chêne-Bourg",
+      "Choulex",
+      "Collex-Bossy",
+      "Collonge-Bellerive",
+      "Cologny",
+      "Confignon",
+      "Corsier",
+      "Dardagny",
+      "Genève",
+      "Genthod",
+      "Grand-Saconnex",
+      "Gy",
+      "Hermance",
+      "Jussy",
+      "Laconnex",
+      "Lancy",
+      "Meinier",
+      "Meyrin",
+      "Onex",
+      "Perly-Certoux",
+      "Plan-les-Ouates",
+      "Pregny-Chambésy",
+      "Presinge",
+      "Puplinge",
+      "Russin",
+      "Satigny",
+      "Soral",
+      "Thônex",
+      "Troinex",
+      "Vandœuvres",
+      "Vernier",
+      "Versoix",
+      "Veyrier"
+    ],
+    "quartiers_intra_muros": [
+      "Acacias",
+      "Bâtie",
+      "Champel",
+      "Charmilles",
+      "Cité-Centre",
+      "Eaux-Vives",
+      "Grottes",
+      "Jonction",
+      "Pâquis",
+      "Plainpalais",
+      "Petit-Saconnex",
+      "Saint-Gervais",
+      "Saint-Jean",
+      "Servette",
+      "Sécheron"
+    ],
+    "lieux_dits_historiques": [
+      "Florissant",
+      "Frontenex",
+      "Malagnou",
+      "Roseraie",
+      "Contamines",
+      "Vernets",
+      "Saint-Georges"
+    ]
+  },
+  "mapping": {
+    "variantes_orthographiques": {
+      "grand-lancy": [
+        "Lancy"
+      ],
+      "petit-lancy": [
+        "Lancy"
+      ],
+      "petit saconnex": [
+        "Petit-Saconnex"
+      ],
+      "petit-saconnex": [
+        "Petit-Saconnex"
+      ],
+      "les acacias": [
+        "Acacias"
+      ],
+      "les eaux-vives": [
+        "Eaux-Vives"
+      ],
+      "eaux vives": [
+        "Eaux-Vives"
+      ],
+      "cite centre": [
+        "Cité-Centre"
+      ],
+      "cite-centre": [
+        "Cité-Centre"
+      ],
+      "vieille ville": [
+        "Cité-Centre"
+      ],
+      "la jonction": [
+        "Jonction"
+      ],
+      "jonction": [
+        "Jonction"
+      ],
+      "la praille": [
+        "Plainpalais",
+        "Acacias"
+      ],
+      "les vernets": [
+        "Vernets",
+        "Acacias"
+      ],
+      "saint gervais": [
+        "Saint-Gervais"
+      ],
+      "saint-gervais": [
+        "Saint-Gervais"
+      ],
+      "grottes": [
+        "Grottes"
+      ],
+      "les grottes": [
+        "Grottes"
+      ],
+      "paquis": [
+        "Pâquis"
+      ],
+      "paqu": [
+        "Pâquis"
+      ],
+      "plainpalais": [
+        "Plainpalais"
+      ],
+      "plain palais": [
+        "Plainpalais"
+      ],
+      "champel": [
+        "Champel"
+      ],
+      "servette": [
+        "Servette"
+      ],
+      "la servette": [
+        "Servette"
+      ],
+      "saint jean": [
+        "Saint-Jean"
+      ],
+      "saint-jean": [
+        "Saint-Jean"
+      ],
+      "charmi": [
+        "Charmilles"
+      ],
+      "charmilles": [
+        "Charmilles"
+      ],
+      "secheron": [
+        "Sécheron"
+      ],
+      "secher": [
+        "Sécheron"
+      ],
+      "batie": [
+        "Bâtie"
+      ],
+      "la batie": [
+        "Bâtie"
+      ],
+      "grand saconnex": [
+        "Grand-Saconnex"
+      ],
+      "grand-saconnex": [
+        "Grand-Saconnex"
+      ],
+      "meyrin": [
+        "Meyrin"
+      ],
+      "plan les ouates": [
+        "Plan-les-Ouates"
+      ],
+      "plan-les-ouates": [
+        "Plan-les-Ouates"
+      ],
+      "thonex": [
+        "Thônex"
+      ],
+      "thône": [
+        "Thônex"
+      ],
+      "vernier": [
+        "Vernier"
+      ],
+      "carouge": [
+        "Carouge"
+      ],
+      "onex": [
+        "Onex"
+      ],
+      "lancy": [
+        "Lancy"
+      ],
+      "cologny": [
+        "Cologny"
+      ],
+      "chene bougeries": [
+        "Chêne-Bougeries"
+      ],
+      "chene-bougeries": [
+        "Chêne-Bougeries"
+      ]
+    },
+    "termes_vagues_geographiques": {
+      "gare": [
+        "Pâquis",
+        "Servette",
+        "Grottes",
+        "Cité-Centre"
+      ],
+      "gare cornavin": [
+        "Pâquis",
+        "Servette",
+        "Grottes"
+      ],
+      "cornavin": [
+        "Pâquis",
+        "Servette",
+        "Grottes"
+      ],
+      "centre-ville": [
+        "Cité-Centre",
+        "Saint-Gervais",
+        "Plainpalais"
+      ],
+      "centre ville": [
+        "Cité-Centre",
+        "Saint-Gervais",
+        "Plainpalais"
+      ],
+      "centre": [
+        "Cité-Centre"
+      ],
+      "rive gauche": [
+        "Plainpalais",
+        "Jonction",
+        "Acacias",
+        "Eaux-Vives",
+        "Champel",
+        "Carouge",
+        "Lancy"
+      ],
+      "rive-gauche": [
+        "Plainpalais",
+        "Jonction",
+        "Acacias",
+        "Eaux-Vives",
+        "Champel",
+        "Carouge",
+        "Lancy"
+      ],
+      "rive droite": [
+        "Pâquis",
+        "Servette",
+        "Petit-Saconnex",
+        "Charmilles",
+        "Grottes",
+        "Sécheron",
+        "Saint-Gervais"
+      ],
+      "rive-droite": [
+        "Pâquis",
+        "Servette",
+        "Petit-Saconnex",
+        "Charmilles",
+        "Grottes",
+        "Sécheron",
+        "Saint-Gervais"
+      ],
+      "lac": [
+        "Pâquis",
+        "Eaux-Vives",
+        "Champel"
+      ],
+      "lac leman": [
+        "Pâquis",
+        "Eaux-Vives",
+        "Champel"
+      ],
+      "lac léman": [
+        "Pâquis",
+        "Eaux-Vives",
+        "Champel"
+      ],
+      "leman": [
+        "Pâquis",
+        "Eaux-Vives",
+        "Champel"
+      ],
+      "confluence": [
+        "Jonction"
+      ],
+      "rhone arve": [
+        "Jonction"
+      ],
+      "rhône-arve": [
+        "Jonction"
+      ],
+      "arve": [
+        "Jonction",
+        "Plainpalais",
+        "Acacias"
+      ],
+      "rhone": [
+        "Jonction",
+        "Plainpalais"
+      ],
+      "rhône": [
+        "Jonction",
+        "Plainpalais"
+      ],
+      "nord": [
+        "Pâquis",
+        "Servette",
+        "Grand-Saconnex",
+        "Vernier",
+        "Meyrin"
+      ],
+      "nord geneve": [
+        "Pâquis",
+        "Servette",
+        "Grand-Saconnex",
+        "Vernier"
+      ],
+      "sud": [
+        "Plainpalais",
+        "Champel",
+        "Carouge",
+        "Lancy"
+      ],
+      "sud geneve": [
+        "Plainpalais",
+        "Champel",
+        "Carouge",
+        "Lancy"
+      ],
+      "est": [
+        "Eaux-Vives",
+        "Cologny",
+        "Thônex"
+      ],
+      "ouest": [
+        "Acacias",
+        "Onex",
+        "Vernier"
+      ],
+      "geneve": [
+        "Cité-Centre",
+        "Pâquis",
+        "Plainpalais",
+        "Eaux-Vives",
+        "Saint-Gervais"
+      ],
+      "ville de geneve": [
+        "Cité-Centre",
+        "Pâquis",
+        "Plainpalais",
+        "Eaux-Vives",
+        "Saint-Gervais"
+      ],
+      "intra-muros": [
+        "Cité-Centre",
+        "Eaux-Vives",
+        "Plainpalais",
+        "Pâquis",
+        "Saint-Gervais"
+      ],
+      "intramuro": [
+        "Cité-Centre",
+        "Eaux-Vives",
+        "Plainpalais",
+        "Pâquis",
+        "Saint-Gervais"
+      ],
+      "periferique": [
+        "Acacias",
+        "Jonction",
+        "Carouge",
+        "Onex",
+        "Lancy"
+      ],
+      "peripheerie": [
+        "Acacias",
+        "Jonction",
+        "Carouge",
+        "Onex",
+        "Lancy"
+      ],
+      "banlieue": [
+        "Carouge",
+        "Onex",
+        "Lancy",
+        "Thônex",
+        "Plan-les-Ouates"
+      ]
+    },
+    "noms_infrastructures_majeures": {
+      "cornavin": [
+        "Pâquis",
+        "Servette",
+        "Grottes"
+      ],
+      "gare cornavin": [
+        "Pâquis",
+        "Servette",
+        "Grottes"
+      ],
+      "palexpo": [
+        "Grand-Saconnex",
+        "Meyrin"
+      ],
+      "expo": [
+        "Grand-Saconnex",
+        "Meyrin"
+      ],
+      "aeroport": [
+        "Grand-Saconnex",
+        "Meyrin",
+        "Bellevue"
+      ],
+      "aéroport": [
+        "Grand-Saconnex",
+        "Meyrin",
+        "Bellevue"
+      ],
+      "geneve aeroport": [
+        "Grand-Saconnex",
+        "Meyrin"
+      ],
+      "geneve-aeroport": [
+        "Grand-Saconnex",
+        "Meyrin"
+      ],
+      "cointrin": [
+        "Grand-Saconnex",
+        "Meyrin"
+      ],
+      "gva": [
+        "Grand-Saconnex",
+        "Meyrin"
+      ],
+      "balexert": [
+        "Vernier"
+      ],
+      "centre balexert": [
+        "Vernier"
+      ],
+      "balexert vernier": [
+        "Vernier"
+      ],
+      "vernets": [
+        "Acacias"
+      ],
+      "centre sportif des vernets": [
+        "Acacias"
+      ],
+      "patinoire des vernets": [
+        "Acacias"
+      ],
+      "la praille": [
+        "Acacias",
+        "Carouge"
+      ],
+      "gare praille": [
+        "Acacias"
+      ],
+      "rolex": [
+        "Acacias"
+      ],
+      "parc bertrand": [
+        "Champel"
+      ],
+      "musee histoire naturelle": [
+        "Eaux-Vives"
+      ],
+      "museum": [
+        "Eaux-Vives"
+      ],
+      "malagnou": [
+        "Eaux-Vives"
+      ],
+      "parc malagnou": [
+        "Eaux-Vives"
+      ],
+      "route malagnou": [
+        "Eaux-Vives"
+      ],
+      "cern": [
+        "Meyrin"
+      ],
+      "centre europeen recherche nucleaire": [
+        "Meyrin"
+      ],
+      "jardin botanique": [
+        "Pâquis"
+      ],
+      "musee ariana": [
+        "Pâquis"
+      ],
+      "conservatoire": [
+        "Pâquis"
+      ],
+      "bains paquis": [
+        "Pâquis"
+      ],
+      "bains des paquis": [
+        "Pâquis"
+      ],
+      "jet eau": [
+        "Pâquis"
+      ],
+      "jet d'eau": [
+        "Pâquis"
+      ],
+      "place neuve": [
+        "Plainpalais"
+      ],
+      "mont blanc": [
+        "Grottes"
+      ],
+      "place des grottes": [
+        "Grottes"
+      ],
+      "marche grottes": [
+        "Grottes"
+      ],
+      "cropettes": [
+        "Grottes"
+      ],
+      "parc cropettes": [
+        "Grottes"
+      ],
+      "pont pont-rouge": [
+        "Carouge",
+        "Acacias"
+      ],
+      "pont rouge": [
+        "Carouge",
+        "Acacias"
+      ]
+    },
+    "lieux_dits_historiques": {
+      "florissant": [
+        "Champel"
+      ],
+      "route florissant": [
+        "Champel"
+      ],
+      "frontenex": [
+        "Eaux-Vives"
+      ],
+      "route frontenex": [
+        "Eaux-Vives"
+      ],
+      "plateau frontenex": [
+        "Eaux-Vives"
+      ],
+      "malagnou": [
+        "Eaux-Vives"
+      ],
+      "route malagnou": [
+        "Eaux-Vives"
+      ],
+      "roseraie": [
+        "Champel"
+      ],
+      "la roseraie": [
+        "Champel"
+      ],
+      "parc roseraie": [
+        "Champel"
+      ],
+      "contamines": [
+        "Champel"
+      ],
+      "route contamines": [
+        "Champel"
+      ],
+      "parc contamines": [
+        "Champel"
+      ],
+      "saint-georges": [
+        "Acacias"
+      ],
+      "pont saint-georges": [
+        "Acacias"
+      ],
+      "vernets": [
+        "Acacias"
+      ],
+      "les vernets": [
+        "Acacias"
+      ],
+      "queue-arve": [
+        "Acacias"
+      ],
+      "queue d'arve": [
+        "Acacias"
+      ],
+      "graviere": [
+        "Acacias"
+      ],
+      "la graviere": [
+        "Acacias"
+      ],
+      "bois batia": [
+        "Jonction",
+        "Plainpalais"
+      ],
+      "bois de la batie": [
+        "Jonction",
+        "Plainpalais"
+      ],
+      "batie": [
+        "Acacias",
+        "Jonction"
+      ],
+      "la batie": [
+        "Acacias",
+        "Jonction"
+      ],
+      "ponts acacias": [
+        "Acacias",
+        "Jonction"
+      ],
+      "pont acacias": [
+        "Acacias",
+        "Jonction"
+      ],
+      "moillebeau": [
+        "Petit-Saconnex",
+        "Servette"
+      ],
+      "grand-pre": [
+        "Petit-Saconnex",
+        "Servette"
+      ],
+      "chataine": [
+        "Charmilles",
+        "Saint-Jean"
+      ],
+      "chatelaine": [
+        "Charmilles",
+        "Saint-Jean"
+      ],
+      "beaulieu": [
+        "Petit-Saconnex"
+      ],
+      "parc beaulieu": [
+        "Petit-Saconnex"
+      ],
+      "varemble": [
+        "Servette",
+        "Petit-Saconnex"
+      ],
+      "morilion": [
+        "Petit-Saconnex"
+      ],
+      "rigot": [
+        "Pâquis"
+      ],
+      "bouchet": [
+        "Servette",
+        "Petit-Saconnex"
+      ],
+      "le bouchet": [
+        "Servette",
+        "Petit-Saconnex"
+      ],
+      "navigation": [
+        "Pâquis"
+      ],
+      "wilson": [
+        "Pâquis"
+      ],
+      "prieure": [
+        "Pâquis"
+      ],
+      "nations": [
+        "Pâquis"
+      ],
+      "sejet": [
+        "Grottes"
+      ],
+      "seujet": [
+        "Grottes"
+      ],
+      "les bergues": [
+        "Grottes",
+        "Saint-Gervais"
+      ],
+      "bergues": [
+        "Grottes",
+        "Saint-Gervais"
+      ],
+      "chantepoulet": [
+        "Grottes"
+      ],
+      "delices": [
+        "Grottes"
+      ],
+      "cropettes": [
+        "Grottes"
+      ],
+      "cornavn": [
+        "Grottes"
+      ],
+      "jonquille": [
+        "Jonction"
+      ],
+      "pointe jonction": [
+        "Jonction"
+      ],
+      "poterie": [
+        "Saint-Jean"
+      ],
+      "liotard": [
+        "Saint-Jean"
+      ],
+      "geisendorf": [
+        "Saint-Jean"
+      ],
+      "franchises": [
+        "Saint-Jean"
+      ],
+      "concorde": [
+        "Saint-Jean"
+      ],
+      "ansermet": [
+        "Plainpalais"
+      ],
+      "dancet": [
+        "Plainpalais"
+      ],
+      "minoteries": [
+        "Plainpalais"
+      ],
+      "augustins": [
+        "Plainpalais"
+      ],
+      "village suisse": [
+        "Plainpalais"
+      ],
+      "cluse": [
+        "Plainpalais"
+      ],
+      "philosophes": [
+        "Plainpalais"
+      ],
+      "cit vieuseaux": [
+        "Saint-Jean"
+      ],
+      "cité vieusseux": [
+        "Saint-Jean"
+      ],
+      "montbrillant": [
+        "Grottes",
+        "Pâquis"
+      ]
+    },
+    "secteurs_administratifs_detailles": {
+      "saint-gervais": [
+        "Saint-Gervais"
+      ],
+      "chantepoulet": [
+        "Grottes"
+      ],
+      "cornavin": [
+        "Grottes"
+      ],
+      "delices": [
+        "Grottes"
+      ],
+      "cropettes": [
+        "Grottes"
+      ],
+      "seujet": [
+        "Grottes"
+      ],
+      "les bergues": [
+        "Saint-Gervais"
+      ],
+      "bergues": [
+        "Saint-Gervais"
+      ],
+      "paquis": [
+        "Pâquis"
+      ],
+      "secher": [
+        "Sécheron"
+      ],
+      "navigation": [
+        "Pâquis"
+      ],
+      "wilson": [
+        "Pâquis"
+      ],
+      "prieure": [
+        "Pâquis"
+      ],
+      "nations": [
+        "Pâquis"
+      ],
+      "rigot": [
+        "Pâquis"
+      ],
+      "plainpalais": [
+        "Plainpalais"
+      ],
+      "jonction": [
+        "Jonction"
+      ],
+      "cluse": [
+        "Plainpalais"
+      ],
+      "philosophes": [
+        "Plainpalais"
+      ],
+      "village suisse": [
+        "Plainpalais"
+      ],
+      "ansermet": [
+        "Plainpalais"
+      ],
+      "dancet": [
+        "Plainpalais"
+      ],
+      "minoteries": [
+        "Plainpalais"
+      ],
+      "augustins": [
+        "Plainpalais"
+      ],
+      "acacias": [
+        "Acacias"
+      ],
+      "batie": [
+        "Bâtie",
+        "Acacias"
+      ],
+      "saint-georges": [
+        "Acacias"
+      ],
+      "vernets": [
+        "Vernets",
+        "Acacias"
+      ],
+      "queue-arve": [
+        "Acacias"
+      ],
+      "graviere": [
+        "Acacias"
+      ],
+      "eaux-vives": [
+        "Eaux-Vives"
+      ],
+      "cite": [
+        "Cité-Centre"
+      ],
+      "centre": [
+        "Cité-Centre"
+      ],
+      "rive": [
+        "Eaux-Vives"
+      ],
+      "villereuse": [
+        "Eaux-Vives"
+      ],
+      "vollandes": [
+        "Eaux-Vives"
+      ],
+      "montchoisy": [
+        "Eaux-Vives"
+      ],
+      "frontenex": [
+        "Eaux-Vives"
+      ],
+      "tulipiers": [
+        "Eaux-Vives"
+      ],
+      "champel": [
+        "Champel"
+      ],
+      "florissant": [
+        "Champel"
+      ],
+      "malagnou": [
+        "Champel",
+        "Eaux-Vives"
+      ],
+      "hopital": [
+        "Champel"
+      ],
+      "roseraie": [
+        "Champel"
+      ],
+      "colline": [
+        "Champel"
+      ],
+      "bout-monde": [
+        "Champel"
+      ],
+      "contamines": [
+        "Champel"
+      ],
+      "saint-jean": [
+        "Saint-Jean"
+      ],
+      "charmilles": [
+        "Charmilles"
+      ],
+      "chataine": [
+        "Charmilles"
+      ],
+      "cité vieusseux": [
+        "Saint-Jean"
+      ],
+      "poterie": [
+        "Saint-Jean"
+      ],
+      "liotard": [
+        "Saint-Jean"
+      ],
+      "geisendorf": [
+        "Saint-Jean"
+      ],
+      "franchises": [
+        "Saint-Jean"
+      ],
+      "concorde": [
+        "Saint-Jean"
+      ],
+      "servette": [
+        "Servette"
+      ],
+      "petit-saconnex": [
+        "Petit-Saconnex"
+      ],
+      "bouchet": [
+        "Servette"
+      ],
+      "moillebeau": [
+        "Servette"
+      ],
+      "grand-pre": [
+        "Servette"
+      ],
+      "vermont": [
+        "Servette"
+      ],
+      "beaulieu": [
+        "Petit-Saconnex"
+      ],
+      "varemble": [
+        "Servette"
+      ]
+    },
+    "zones_commerciales_majeures": {
+      "la praille": [
+        "Acacias",
+        "Carouge"
+      ],
+      "praille": [
+        "Acacias",
+        "Carouge"
+      ],
+      "pav": [
+        "Acacias",
+        "Carouge",
+        "Lancy"
+      ],
+      "praille-acacias-vernets": [
+        "Acacias",
+        "Carouge",
+        "Lancy"
+      ],
+      "palexpo": [
+        "Grand-Saconnex"
+      ],
+      "balexert": [
+        "Vernier"
+      ],
+      "migros lancy": [
+        "Lancy"
+      ],
+      "mpark carouge": [
+        "Carouge"
+      ],
+      "rolex": [
+        "Acacias"
+      ]
+    },
+    "termes_administratifs_ambigus": {
+      "geneve": [
+        "Genève"
+      ],
+      "canton geneve": [
+        "Genève"
+      ],
+      "canton": [
+        "Genève"
+      ],
+      "republique canton geneve": [
+        "Genève"
+      ],
+      "suisse": [
+        "Genève"
+      ],
+      "region geneve": [
+        "Genève"
+      ],
+      "ville geneve": [
+        "Cité-Centre",
+        "Pâquis",
+        "Plainpalais",
+        "Eaux-Vives"
+      ],
+      "commune geneve": [
+        "Genève"
+      ],
+      "geneve ville": [
+        "Cité-Centre",
+        "Pâquis",
+        "Plainpalais",
+        "Eaux-Vives",
+        "Saint-Gervais",
+        "Grottes"
+      ],
+      "zone geneve": [
+        "Genève"
+      ],
+      "secteur geneve": [
+        "Genève"
+      ]
+    },
+    "variantes_accent_ligature": {
+      "chevne-bougeries": [
+        "Chêne-Bougeries"
+      ],
+      "chene-bougeries": [
+        "Chêne-Bougeries"
+      ],
+      "chevne-bourg": [
+        "Chêne-Bourg"
+      ],
+      "chene-bourg": [
+        "Chêne-Bourg"
+      ],
+      "pregny-chambesy": [
+        "Pregny-Chambésy"
+      ],
+      "collonge-bellerive": [
+        "Collonge-Bellerive"
+      ],
+      "collex-bossy": [
+        "Collex-Bossy"
+      ],
+      "perly-certoux": [
+        "Perly-Certoux"
+      ],
+      "plan-les-ouates": [
+        "Plan-les-Ouates"
+      ],
+      "vandoeurves": [
+        "Vandœuvres"
+      ],
+      "versoix": [
+        "Versoix"
+      ],
+      "paqui": [
+        "Pâquis"
+      ],
+      "paqu": [
+        "Pâquis"
+      ],
+      "thonex": [
+        "Thônex"
+      ],
+      "thone": [
+        "Thônex"
+      ],
+      "cité-centre": [
+        "Cité-Centre"
+      ],
+      "eaux vives": [
+        "Eaux-Vives"
+      ],
+      "champi": [
+        "Champel"
+      ],
+      "champelle": [
+        "Champel"
+      ]
+    },
+    "references_adjacentes": {
+      "aeroport geneve cointrin": [
+        "Grand-Saconnex",
+        "Meyrin"
+      ],
+      "gare geneve": [
+        "Grottes",
+        "Pâquis",
+        "Saint-Gervais"
+      ],
+      "geneve-aeroport": [
+        "Grand-Saconnex",
+        "Meyrin"
+      ],
+      "pont-rouge": [
+        "Carouge",
+        "Lancy"
+      ],
+      "pont-wilsdorf": [
+        "Acacias",
+        "Jonction"
+      ],
+      "passerelle wilsdorf": [
+        "Acacias",
+        "Jonction"
+      ],
+      "pont hans-wilsdorf": [
+        "Acacias",
+        "Jonction"
+      ],
+      "parc la grange": [
+        "Eaux-Vives"
+      ],
+      "cite internationale": [
+        "Pâquis"
+      ],
+      "palais nations": [
+        "Pâquis"
+      ]
+    }
+  }
+}
