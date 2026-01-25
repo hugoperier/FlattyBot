@@ -16,6 +16,7 @@ FlattyBot est un bot Telegram intelligent qui aide les utilisateurs à trouver d
 - Compte Supabase (avec les tables `fb_annonces_location` et `facebook_posts`)
 - Clé API OpenAI
 - Token Bot Telegram
+- ID Telegram de l'administrateur
 
 ## Installation
 

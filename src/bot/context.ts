@@ -8,10 +8,12 @@ export interface ConversationMessage {
 }
 
 export interface SessionData {
-    step: 'IDLE' | 'AWAITING_AUTHORIZATION' | 'ONBOARDING_WAITING_DESCRIPTION' | 'ONBOARDING_WAITING_CONFIRMATION';
+    step: 'IDLE' | 'AWAITING_AUTHORIZATION' | 'ONBOARDING_WAITING_DESCRIPTION' | 'ONBOARDING_WAITING_LOCATION_VALIDATION' | 'ONBOARDING_WAITING_CONFIRMATION';
     tempCriteria?: ExtractedCriteria;
     conversationHistory?: ConversationMessage[];
     existingCriteria?: ExtractedCriteria;
+    verifiedZones?: string[];
+    suggestedZones?: string[];
 }
 
 export type MyContext = Context & SessionFlavor<SessionData>;

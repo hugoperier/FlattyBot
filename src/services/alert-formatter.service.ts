@@ -72,43 +72,23 @@ export class AlertFormatterService {
      */
     async getImageUrl(imagePath: string | null): Promise<string | null> {
         if (!imagePath) {
-            console.log('No image path provided');
             return null;
         }
 
         try {
-            // Parse the path to handle subdirectories
-            const pathParts = imagePath.split('/');
-            const fileName = pathParts[pathParts.length - 1];
-            const folder = pathParts.length > 1 ? pathParts.slice(0, -1).join('/') : '';
-
-            // List files in the specific folder (without search parameter)
-            const { data: fileList, error: listError } = await supabase.storage
-                .from('annonces_images')
-                .list(folder, {
-                    limit: 500
-                });
-
-            if (listError) {
-                console.error('Error listing files:', listError);
-                return null;
-            }
-
-            const fileExists = fileList && fileList.some(file => file.name === fileName);
-
-            if (!fileExists) {
-                console.warn(`Image not found: ${imagePath}`);
-                return null;
-            }
-
-            // File exists, create a signed URL (works with private bucket)
-            // URL expires after 7 days (604800 seconds) - user can view old messages
-            const { data, error: signError } = await supabase.storage
+            // No need to list files first, createSignedUrl will return 
+            // an error if the file doesn't exist.
+            // This also avoids the 500-file limit from .list()
+            const { data, error } = await supabase.storage
                 .from('annonces_images')
                 .createSignedUrl(imagePath, 604800);
 
-            if (signError) {
-                console.error('Error creating signed URL:', signError);
+            if (error) {
+                if (error.message === 'Object not found') {
+                    console.warn(`Image not found in storage: ${imagePath}`);
+                } else {
+                    console.error('Error creating signed URL:', error);
+                }
                 return null;
             }
 
@@ -242,13 +222,12 @@ export class AlertFormatterService {
         if (!imagePath) return false;
 
         try {
+            // Use Head Object or a limited search to check existence without listing everything
             const { data, error } = await supabase.storage
                 .from('annonces_images')
-                .list('', {
-                    search: imagePath
-                });
+                .createSignedUrl(imagePath, 60);
 
-            return !error && data && data.length > 0;
+            return !error && !!data?.signedUrl;
         } catch (error) {
             console.error('Error checking image existence:', error);
             return false;

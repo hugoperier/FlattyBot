@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  flattybot:
+    image: registry.hugosoft.dev/flattybot:latest
+    container_name: flattybot
+    restart: unless-stopped
+    
+    environment:
+      # Telegram Configuration
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      
+      # OpenAI Configuration
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      
+      # Supabase Configuration
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      
+      # Admin Configuration
+      - ADMIN_TELEGRAM_ID=${ADMIN_TELEGRAM_ID}
+      
+      # Node Environment
+      - NODE_ENV=production
+    
+    # Health check to ensure bot is running
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('Bot is running')"]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+      
+    # Security: Run as non-root user
+    user: "1001:1001"
+    
+    # Optional: Network configuration for isolation
+    networks:
+      - flattybot-network
+
+networks:
+  flattybot-network:
+    driver: bridge

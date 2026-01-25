@@ -1,0 +1,325 @@
+{
+    "Acacias": [
+        "Plainpalais",
+        "Jonction",
+        "Lancy",
+        "Carouge"
+    ],
+    "Aire-la-Ville": [],
+    "Anières": [
+        "Corsier",
+        "Hermance"
+    ],
+    "Avully": [
+        "Satigny",
+        "Dardagny",
+        "Chancy"
+    ],
+    "Avusy": [
+        "Chancy",
+        "Soral"
+    ],
+    "Bardonnex": [
+        "Plan-les-Ouates",
+        "Perly-Certoux",
+        "Troinex"
+    ],
+    "Bellevue": [
+        "Collex-Bossy",
+        "Versoix",
+        "Pregny-Chambésy"
+    ],
+    "Bernex": [
+        "Confignon",
+        "Onex",
+        "Vernier"
+    ],
+    "Bâtie": [],
+    "Carouge": [
+        "Acacias",
+        "Lancy",
+        "Champel",
+        "Veyrier"
+    ],
+    "Cartigny": [],
+    "Champel": [
+        "Plainpalais",
+        "Eaux-Vives",
+        "Cité-Centre",
+        "Carouge",
+        "Cologny"
+    ],
+    "Chancy": [
+        "Dardagny",
+        "Avully",
+        "Avusy"
+    ],
+    "Charmilles": [
+        "Saint-Jean",
+        "Servette",
+        "Petit-Saconnex"
+    ],
+    "Choulex": [
+        "Thônex",
+        "Vandœuvres",
+        "Puplinge",
+        "Presinge",
+        "Meinier",
+        "Collonge-Bellerive"
+    ],
+    "Chêne-Bougeries": [
+        "Thônex",
+        "Chêne-Bourg",
+        "Vandœuvres",
+        "Cologny",
+        "Genève"
+    ],
+    "Chêne-Bourg": [
+        "Veyrier",
+        "Thônex",
+        "Chêne-Bougeries",
+        "Vandœuvres"
+    ],
+    "Cité-Centre": [
+        "Plainpalais",
+        "Eaux-Vives",
+        "Champel",
+        "Grottes",
+        "Pâquis"
+    ],
+    "Collex-Bossy": [
+        "Versoix",
+        "Bellevue",
+        "Genthod"
+    ],
+    "Collonge-Bellerive": [
+        "Choulex",
+        "Meinier",
+        "Corsier",
+        "Cologny",
+        "Vandœuvres"
+    ],
+    "Cologny": [
+        "Eaux-Vives",
+        "Champel",
+        "Chêne-Bougeries",
+        "Vandœuvres",
+        "Collonge-Bellerive"
+    ],
+    "Confignon": [
+        "Onex",
+        "Plan-les-Ouates",
+        "Perly-Certoux",
+        "Bernex"
+    ],
+    "Contamines": [],
+    "Corsier": [
+        "Gy",
+        "Meinier",
+        "Collonge-Bellerive",
+        "Anières"
+    ],
+    "Céligny": [],
+    "Dardagny": [
+        "Satigny",
+        "Chancy",
+        "Avully"
+    ],
+    "Eaux-Vives": [
+        "Jonction",
+        "Cité-Centre",
+        "Champel",
+        "Cologny"
+    ],
+    "Florissant": [],
+    "Frontenex": [],
+    "Genthod": [
+        "Versoix",
+        "Collex-Bossy",
+        "Pregny-Chambésy"
+    ],
+    "Genève": [
+        "Lancy",
+        "Carouge",
+        "Onex",
+        "Vernier",
+        "Chêne-Bougeries",
+        "Cologny",
+        "Pregny-Chambésy"
+    ],
+    "Grand-Saconnex": [
+        "Servette",
+        "Petit-Saconnex",
+        "Vernier",
+        "Meyrin"
+    ],
+    "Grottes": [
+        "Saint-Jean",
+        "Cité-Centre",
+        "Pâquis"
+    ],
+    "Gy": [
+        "Meinier",
+        "Jussy",
+        "Corsier"
+    ],
+    "Hermance": [
+        "Anières"
+    ],
+    "Jonction": [
+        "Plainpalais",
+        "Acacias",
+        "Saint-Jean",
+        "Eaux-Vives"
+    ],
+    "Jussy": [
+        "Presinge",
+        "Meinier",
+        "Gy"
+    ],
+    "Laconnex": [],
+    "Lancy": [
+        "Acacias",
+        "Carouge",
+        "Onex",
+        "Plan-les-Ouates",
+        "Vernier"
+    ],
+    "Malagnou": [],
+    "Meinier": [
+        "Choulex",
+        "Presinge",
+        "Jussy",
+        "Gy",
+        "Corsier",
+        "Collonge-Bellerive"
+    ],
+    "Meyrin": [
+        "Grand-Saconnex",
+        "Vernier",
+        "Satigny"
+    ],
+    "Onex": [
+        "Lancy",
+        "Plan-les-Ouates",
+        "Confignon",
+        "Bernex",
+        "Vernier"
+    ],
+    "Perly-Certoux": [
+        "Plan-les-Ouates",
+        "Confignon",
+        "Bardonnex"
+    ],
+    "Petit-Saconnex": [
+        "Charmilles",
+        "Pâquis",
+        "Servette",
+        "Grand-Saconnex",
+        "Vernier"
+    ],
+    "Plainpalais": [
+        "Jonction",
+        "Acacias",
+        "Champel",
+        "Cité-Centre"
+    ],
+    "Plan-les-Ouates": [
+        "Lancy",
+        "Onex",
+        "Confignon",
+        "Perly-Certoux",
+        "Bardonnex",
+        "Troinex"
+    ],
+    "Pregny-Chambésy": [
+        "Genthod",
+        "Bellevue",
+        "Grand-Saconnex",
+        "Pâquis"
+    ],
+    "Presinge": [
+        "Puplinge",
+        "Choulex",
+        "Meinier",
+        "Jussy"
+    ],
+    "Puplinge": [
+        "Thônex",
+        "Choulex",
+        "Presinge"
+    ],
+    "Pâquis": [
+        "Cité-Centre",
+        "Grottes",
+        "Servette",
+        "Petit-Saconnex"
+    ],
+    "Roseraie": [],
+    "Russin": [],
+    "Saint-Georges": [],
+    "Saint-Gervais": [],
+    "Saint-Jean": [
+        "Jonction",
+        "Charmilles",
+        "Servette",
+        "Grottes"
+    ],
+    "Satigny": [
+        "Meyrin",
+        "Dardagny",
+        "Avully"
+    ],
+    "Servette": [
+        "Saint-Jean",
+        "Charmilles",
+        "Pâquis",
+        "Petit-Saconnex",
+        "Grand-Saconnex"
+    ],
+    "Soral": [
+        "Avusy",
+        "Perly-Certoux"
+    ],
+    "Sécheron": [],
+    "Thônex": [
+        "Veyrier",
+        "Chêne-Bourg",
+        "Chêne-Bougeries",
+        "Vandœuvres",
+        "Choulex",
+        "Puplinge"
+    ],
+    "Troinex": [
+        "Plan-les-Ouates",
+        "Bardonnex",
+        "Veyrier"
+    ],
+    "Vandœuvres": [
+        "Thônex",
+        "Chêne-Bourg",
+        "Chêne-Bougeries",
+        "Choulex",
+        "Cologny"
+    ],
+    "Vernets": [],
+    "Vernier": [
+        "Lancy",
+        "Onex",
+        "Petit-Saconnex",
+        "Grand-Saconnex",
+        "Meyrin",
+        "Bernex"
+    ],
+    "Versoix": [
+        "Collex-Bossy",
+        "Bellevue",
+        "Genthod"
+    ],
+    "Veyrier": [
+        "Carouge",
+        "Troinex",
+        "Thônex",
+        "Chêne-Bourg"
+    ]
+}
