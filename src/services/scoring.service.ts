@@ -51,8 +51,11 @@ export class ScoringService {
 
         // 1. Zone (30 pts)
         if (stricts.zones && stricts.zones.length > 0) {
+            // Determine if Geneva context for exclusive mappings
+            const isGeneve = ad.ville?.toLowerCase().includes('geneve')
+
             // Resolve Ad location to canonicals
-            const resolvedLocations = this.locationRepository.resolveAdLocation(ad);
+            const resolvedLocations = this.locationRepository.resolveAdLocation(ad, isGeneve);
             const adRawLocation = `${ad.ville || ''} ${ad.quartier || ''} ${ad.code_postal || ''}`.trim();
 
             // Check intersection with user zones

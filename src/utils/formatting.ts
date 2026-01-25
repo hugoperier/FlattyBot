@@ -1,16 +1,17 @@
 import { ExtractedCriteria } from '../services/openai.service';
 
 export function formatCriteriaSummary(criteria: ExtractedCriteria): string {
-    const stricts = criteria.criteres_stricts;
-    const confort = criteria.criteres_confort;
+    console.log('DEBUG: formatCriteriaSummary input:', JSON.stringify(criteria, null, 2));
+    const stricts = criteria.criteres_stricts || {};
+    const confort = criteria.criteres_confort || {};
 
     let msg = `📋 **Récapitulatif de ta recherche**\n\n`;
 
     msg += `🔒 **Critères Stricts** (Deal-breakers)\n`;
     msg += `- Budget max: ${stricts.budget_max ? stricts.budget_max + ' CHF' : 'Non spécifié'}\n`;
-    msg += `- Zones: ${stricts.zones.length > 0 ? stricts.zones.join(', ') : 'Toute la ville'}\n`;
+    msg += `- Zones: ${stricts.zones?.length > 0 ? stricts.zones.join(', ') : 'Toute la ville'}\n`;
     msg += `- Pièces: ${stricts.nombre_pieces_min || '?'}-${stricts.nombre_pieces_max || '?'} pièces\n`;
-    msg += `- Type: ${stricts.type_logement.length > 0 ? stricts.type_logement.join(', ') : 'Tout'}\n`;
+    msg += `- Type: ${stricts.type_logement?.length > 0 ? stricts.type_logement.join(', ') : 'Tout'}\n`;
     if (stricts.disponibilite) msg += `- Dispo: ${stricts.disponibilite}\n`;
 
     msg += `\n✨ **Critères Confort** (Bonus)\n`;
@@ -20,11 +21,13 @@ export function formatCriteriaSummary(criteria: ExtractedCriteria): string {
     if (confort.meuble) msg += `- Meublé 🛋️\n`;
     if (confort.parking) msg += `- Parking 🚗\n`;
     if (confort.ascenseur) msg += `- Ascenseur 🛗\n`;
-    if (confort.autres.length > 0) msg += `- Autres: ${confort.autres.join(', ')}\n`;
+    if (confort.autres && Array.isArray(confort.autres) && confort.autres.length > 0) {
+        msg += `- Autres: ${confort.autres.join(', ')}\n`;
+    }
 
-    msg += `\n🤖 **Résumé**: ${criteria.resume_humain}\n`;
+    msg += `\n🤖 **Résumé**: ${criteria.resume_humain || 'Non disponible'}\n`;
 
-    if (criteria.criteres_manquants.length > 0) {
+    if (criteria.criteres_manquants && Array.isArray(criteria.criteres_manquants) && criteria.criteres_manquants.length > 0) {
         const manquants = criteria.criteres_manquants.map(c => `\`${c}\``).join(', ');
         msg += `\n⚠️ **Il me manque ces infos importantes** : ${manquants}\n`;
     }

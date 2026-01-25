@@ -14,6 +14,7 @@ interface LocationData {
         communes: string[];
         quartiers_intra_muros: string[];
         lieux_dits_historiques: string[];
+        villes_hors_canton: string[];
     };
     mapping: {
         variantes_orthographiques: { [key: string]: string[] };
@@ -22,6 +23,8 @@ interface LocationData {
         lieux_dits_historiques: { [key: string]: string[] };
         secteurs_administratifs_detailles: { [key: string]: string[] };
         codes_postaux: { [key: string]: string[] };
+        villes_hors_canton: { [key: string]: string[] };
+        mapping_exclusif_geneve: { [key: string]: string[] };
     };
 }
 
@@ -30,6 +33,7 @@ export class LocationRepository {
     private canonicalLocations: Set<string>;
     private dbTermsMapping: { [key: string]: string };
     private lookupMap: Map<string, Set<string>>;
+    private exclusiveGenevaMap: Map<string, Set<string>>;
 
     constructor() {
         const filePath = path.join(process.cwd(), 'src', 'data', 'known_locations.json');
@@ -42,6 +46,7 @@ export class LocationRepository {
 
         this.canonicalLocations = this.loadCanonicalLocations();
         this.lookupMap = this.buildLookupMap();
+        this.exclusiveGenevaMap = this.buildExclusiveGenevaMap();
     }
 
     private loadCanonicalLocations(): Set<string> {
@@ -50,6 +55,7 @@ export class LocationRepository {
         this.data.lieux_canoniques.communes.forEach(loc => locations.add(loc));
         this.data.lieux_canoniques.quartiers_intra_muros.forEach(loc => locations.add(loc));
         this.data.lieux_canoniques.lieux_dits_historiques.forEach(loc => locations.add(loc));
+        this.data.lieux_canoniques.villes_hors_canton.forEach(loc => locations.add(loc));
 
         return locations;
     }
@@ -79,6 +85,8 @@ export class LocationRepository {
         processMappingSection('lieux_dits_historiques', this.data.mapping.lieux_dits_historiques);
         processMappingSection('secteurs_administratifs_detailles', this.data.mapping.secteurs_administratifs_detailles);
         processMappingSection('codes_postaux', this.data.mapping.codes_postaux);
+        processMappingSection('villes_hors_canton', this.data.mapping.villes_hors_canton);
+        processMappingSection('mapping_exclusif_geneve', this.data.mapping.mapping_exclusif_geneve);
 
         return targets;
     }
@@ -130,7 +138,8 @@ export class LocationRepository {
             this.data.mapping.noms_infrastructures_majeures,
             this.data.mapping.lieux_dits_historiques,
             this.data.mapping.secteurs_administratifs_detailles,
-            this.data.mapping.codes_postaux
+            this.data.mapping.codes_postaux,
+            this.data.mapping.villes_hors_canton
         ];
 
         for (const section of mappingSections) {
@@ -154,38 +163,73 @@ export class LocationRepository {
         return map;
     }
 
+    private buildExclusiveGenevaMap(): Map<string, Set<string>> {
+        const map = new Map<string, Set<string>>();
+        const section = this.data.mapping.mapping_exclusif_geneve;
+
+        if (!section) return map;
+
+        for (const [key, targets] of Object.entries(section)) {
+            const normalizedKey = key.toLowerCase().trim();
+            if (!map.has(normalizedKey)) {
+                map.set(normalizedKey, new Set());
+            }
+            targets.forEach(target => {
+                if (this.canonicalLocations.has(target)) {
+                    map.get(normalizedKey)!.add(target);
+                }
+            });
+        }
+        return map;
+    }
+
     /**
      * Tries to find canonical locations from a user string or db string.
      * Returns a list of potential canonical matches.
      */
-    public findCanonical(input: string): string[] {
+    public findCanonical(input: string, isGeneva: boolean = false): string[] {
         if (!input) return [];
         const normalized = input.toLowerCase().trim();
 
-        const matches = this.lookupMap.get(normalized);
-        return matches ? Array.from(matches) : [];
+        const matches = new Set<string>();
+
+        // 1. Standard matches
+        const primaryMatches = this.lookupMap.get(normalized);
+        if (primaryMatches) {
+            primaryMatches.forEach(m => matches.add(m));
+        }
+
+        // 2. Exclusive Geneva matches (only if context is Geneva)
+        if (isGeneva) {
+            const exclusiveMatches = this.exclusiveGenevaMap.get(normalized);
+            if (exclusiveMatches) {
+                exclusiveMatches.forEach(m => matches.add(m));
+            }
+        }
+
+        return Array.from(matches);
     }
 
     /**
      * Resolves an Ad's location to a list of canonical locations.
      * Priority: Quartier > Ville.
      */
-    public resolveAdLocation(ad: Ad): string[] {
+    public resolveAdLocation(ad: Ad, isGeneva: boolean = false): string[] {
         // 1. Try Quartier
         if (ad.quartier) {
-            const matches = this.findCanonical(ad.quartier);
+            const matches = this.findCanonical(ad.quartier, isGeneva);
             if (matches.length > 0) return matches;
         }
 
         // 2. Try Code Postal
         if (ad.code_postal) {
-            const matches = this.findCanonical(ad.code_postal.toString());
+            const matches = this.findCanonical(ad.code_postal.toString(), isGeneva);
             if (matches.length > 0) return matches;
         }
 
         // 3. Try Ville
         if (ad.ville) {
-            const matches = this.findCanonical(ad.ville);
+            const matches = this.findCanonical(ad.ville, isGeneva);
             if (matches.length > 0) return matches;
         }
 

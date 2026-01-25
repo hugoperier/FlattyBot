@@ -79,6 +79,15 @@
       "Contamines",
       "Vernets",
       "Saint-Georges"
+    ],
+    "villes_hors_canton": [
+      "Annemasse",
+      "Lausanne",
+      "Gaillard",
+      "Ambilly",
+      "Ville-la-Grand",
+      "Ferney-Voltaire",
+      "Saint-Julien-en-Genevois"
     ]
   },
   "mapping": {
@@ -228,12 +237,6 @@
       ]
     },
     "termes_vagues_geographiques": {
-      "gare": [
-        "Pâquis",
-        "Servette",
-        "Grottes",
-        "Cité-Centre"
-      ],
       "gare cornavin": [
         "Pâquis",
         "Servette",
@@ -243,19 +246,6 @@
         "Pâquis",
         "Servette",
         "Grottes"
-      ],
-      "centre-ville": [
-        "Cité-Centre",
-        "Saint-Gervais",
-        "Plainpalais"
-      ],
-      "centre ville": [
-        "Cité-Centre",
-        "Saint-Gervais",
-        "Plainpalais"
-      ],
-      "centre": [
-        "Cité-Centre"
       ],
       "rive gauche": [
         "Plainpalais",
@@ -1348,6 +1338,63 @@
       ],
       "palais nations": [
         "Pâquis"
+      ]
+    },
+    "villes_hors_canton": {
+      "annemasse": [
+        "Annemasse"
+      ],
+      "lausanne": [
+        "Lausanne"
+      ],
+      "gaillard": [
+        "Gaillard"
+      ],
+      "ambilly": [
+        "Ambilly"
+      ],
+      "ville-la-grand": [
+        "Ville-la-Grand"
+      ],
+      "ferney": [
+        "Ferney-Voltaire"
+      ],
+      "ferney-voltaire": [
+        "Ferney-Voltaire"
+      ],
+      "st-julien": [
+        "Saint-Julien-en-Genevois"
+      ],
+      "saint-julien": [
+        "Saint-Julien-en-Genevois"
+      ]
+    },
+    "mapping_exclusif_geneve": {
+      "gare": [
+        "Pâquis",
+        "Servette",
+        "Grottes",
+        "Cité-Centre"
+      ],
+      "centre-ville": [
+        "Cité-Centre",
+        "Saint-Gervais",
+        "Plainpalais"
+      ],
+      "centre ville": [
+        "Cité-Centre",
+        "Saint-Gervais",
+        "Plainpalais"
+      ],
+      "centre": [
+        "Cité-Centre"
+      ],
+      "geneve": [
+        "Cité-Centre",
+        "Pâquis",
+        "Plainpalais",
+        "Eaux-Vives",
+        "Saint-Gervais"
       ]
     }
   }

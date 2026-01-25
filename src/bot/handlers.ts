@@ -125,7 +125,9 @@ export function setupHandlers(bot: Bot<MyContext>) {
                 });
 
                 ctx.session.tempCriteria = criteria;
-                const extractedZones = criteria.criteres_stricts.zones || [];
+                console.log('DEBUG: Extracted criteria:', JSON.stringify(criteria, null, 2));
+
+                const extractedZones = criteria?.criteres_stricts?.zones || [];
 
                 // --- Location Validation & Suggestion Logic ---
                 if (extractedZones.length > 0) {
