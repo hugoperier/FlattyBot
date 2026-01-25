@@ -6,10 +6,14 @@ import { AlertRepository } from '../repositories/alert.repository';
 import { formatCriteriaSummary } from '../utils/formatting';
 import { supabase } from '../config/supabase';
 import { ADMIN_TELEGRAM_ID } from '../config/admin';
+import { LocationRepository } from '../repositories/LocationRepository';
+import { ProximityGraph } from '../repositories/ProximityGraph';
 
 const openaiService = new OpenAIService();
 const userRepository = new UserRepository();
 const alertRepository = new AlertRepository();
+const locationRepository = new LocationRepository();
+const proximityGraph = new ProximityGraph();
 
 export function setupHandlers(bot: Bot<MyContext>) {
 
@@ -121,9 +125,70 @@ export function setupHandlers(bot: Bot<MyContext>) {
                 });
 
                 ctx.session.tempCriteria = criteria;
+                const extractedZones = criteria.criteres_stricts.zones || [];
+
+                // --- Location Validation & Suggestion Logic ---
+                if (extractedZones.length > 0) {
+                    const verifiedZones: string[] = [];
+                    const unknownZones: string[] = [];
+
+                    for (const z of extractedZones) {
+                        const matches = locationRepository.findCanonical(z);
+                        if (matches.length > 0) {
+                            verifiedZones.push(matches[0]); // Use first canonical match
+                        } else {
+                            unknownZones.push(z);
+                        }
+                    }
+
+                    // 1. Handle Unknown Zones
+                    if (unknownZones.length > 0) {
+                        await ctx.reply(
+                            `⚠️ **Lieu(x) inconnu(s)**\n\n` +
+                            `Je ne suis pas sûr de connaître : **${unknownZones.join(', ')}**.\n\n` +
+                            `Peux-tu vérifier l'orthographe ou préciser le quartier ? (Je ne couvre que Genève pour l'instant).`,
+                            { parse_mode: 'Markdown' }
+                        );
+                        return; // Stop here, user must reply again
+                    }
+
+                    // 2. Handle Suggestions
+                    const suggestions = new Set<string>();
+                    for (const z of verifiedZones) {
+                        const neighbors = proximityGraph.getNeighbors(z);
+                        neighbors.forEach(n => {
+                            if (!verifiedZones.includes(n)) suggestions.add(n);
+                        });
+                    }
+
+                    // Update session with verified zones (canonicalized)
+                    ctx.session.tempCriteria.criteres_stricts.zones = verifiedZones;
+                    ctx.session.verifiedZones = verifiedZones;
+                    ctx.session.suggestedZones = Array.from(suggestions);
+
+                    // If we have suggestions, ask user
+                    if (suggestions.size > 0) {
+                        ctx.session.step = 'ONBOARDING_WAITING_LOCATION_VALIDATION';
+
+                        const msg = `📍 **Localisation**\n\n` +
+                            `J'ai bien noté ta recherche pour : **${verifiedZones.join(', ')}**.\n\n` +
+                            `💡 Pour ne rien rater, je te suggère d'inclure aussi les zones limitrophes : **${Array.from(suggestions).join(', ')}**.\n\n` +
+                            `On garde tout ?`;
+
+                        const kb = new InlineKeyboard()
+                            .text("✅ Oui, tout inclure", "conf_loc_all").row()
+                            .text("🎯 Non, seulement ma sélection", "conf_loc_strict").row()
+                            .text("🔄 Reformuler", "retry_criteria");
+
+                        await ctx.reply(msg, { parse_mode: 'Markdown', reply_markup: kb });
+                        return; // Stop here, wait for callback
+                    }
+                }
+
+                // If no zones or no suggestions, proceed directly to confirmation
                 ctx.session.step = 'ONBOARDING_WAITING_CONFIRMATION';
 
-                const summary = formatCriteriaSummary(criteria);
+                const summary = formatCriteriaSummary(ctx.session.tempCriteria);
 
                 // Add assistant response to conversation history
                 ctx.session.conversationHistory.push({
@@ -147,6 +212,44 @@ export function setupHandlers(bot: Bot<MyContext>) {
     });
 
     // Handle callbacks
+
+    // Location Validation Callbacks
+    bot.callbackQuery(['conf_loc_all', 'conf_loc_strict'], async (ctx) => {
+        if (ctx.session.step === 'ONBOARDING_WAITING_LOCATION_VALIDATION' && ctx.session.tempCriteria) {
+            const isAll = ctx.callbackQuery.data === 'conf_loc_all';
+
+            if (isAll && ctx.session.suggestedZones) {
+                // Add suggestions to zones
+                const current = new Set(ctx.session.tempCriteria.criteres_stricts.zones);
+                ctx.session.suggestedZones.forEach(z => current.add(z));
+                ctx.session.tempCriteria.criteres_stricts.zones = Array.from(current);
+            }
+            // else: strictly keep verifiedZones (already set in previous step)
+
+            // Proceed to Final Confirmation
+            ctx.session.step = 'ONBOARDING_WAITING_CONFIRMATION';
+
+            const summary = formatCriteriaSummary(ctx.session.tempCriteria);
+
+            // Add to history
+            if (ctx.session.conversationHistory) {
+                ctx.session.conversationHistory.push({
+                    role: 'assistant',
+                    content: summary,
+                    timestamp: new Date().toISOString()
+                });
+            }
+
+            const keyboard = new InlineKeyboard()
+                .text("✅ C'est tout bon !", "confirm_criteria").row()
+                .text("🔄 Reformuler", "retry_criteria")
+                .text("❌ Annuler", "cancel_onboarding");
+
+            await ctx.editMessageText(summary, { parse_mode: 'Markdown', reply_markup: keyboard });
+            await ctx.answerCallbackQuery();
+        }
+    });
+
     bot.callbackQuery('confirm_criteria', async (ctx) => {
         if (ctx.session.step === 'ONBOARDING_WAITING_CONFIRMATION' && ctx.session.tempCriteria) {
             if (!ctx.from?.id) return;

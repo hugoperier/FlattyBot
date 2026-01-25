@@ -1,5 +1,6 @@
 import { Ad, UserCriteria } from '../types/database';
 import { ExtractedCriteria } from './openai.service';
+import { LocationRepository } from '../repositories/LocationRepository';
 
 export interface ScoreResult {
     score_total: number;
@@ -11,6 +12,12 @@ export interface ScoreResult {
 }
 
 export class ScoringService {
+    private locationRepository: LocationRepository;
+
+    constructor() {
+        this.locationRepository = new LocationRepository();
+    }
+
     calculateScore(ad: Ad, criteria: UserCriteria): ScoreResult {
         const stricts = criteria.criteres_stricts as ExtractedCriteria['criteres_stricts'];
         const confort = criteria.criteres_confort as ExtractedCriteria['criteres_confort'];
@@ -25,10 +32,16 @@ export class ScoringService {
         let strictFail = false;
 
         // 1. Zone (30 pts)
-        // Simple string matching for now. Can be improved with fuzzy matching or geo-coordinates.
         if (stricts.zones && stricts.zones.length > 0) {
-            const adLocation = `${ad.ville} ${ad.quartier} ${ad.code_postal} ${ad.adresse_complete}`.toLowerCase();
-            const zoneMatch = stricts.zones.some(z => adLocation.includes(z.toLowerCase()));
+            // Resolve Ad location to canonicals
+            const resolvedLocations = this.locationRepository.resolveAdLocation(ad);
+
+            // Check intersection with user zones
+            // We assume user zones are already canonical (validated during onboarding)
+            const zoneMatch = stricts.zones.some(userZone =>
+                resolvedLocations.includes(userZone)
+            );
+
             if (zoneMatch) {
                 scoreStricts += 30;
                 strictMatches.push('Zone');
@@ -36,7 +49,7 @@ export class ScoringService {
                 strictFail = true;
             }
         } else {
-            // If no zone specified, we assume it matches (or we could penalize, but usually we want to show everything if unsure)
+            // If no zone specified, we assume it matches
             scoreStricts += 30;
         }
 

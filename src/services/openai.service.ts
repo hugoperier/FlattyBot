@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
+import { CRITERIA_SCHEMA, SYSTEM_PROMPT, formatUserPrompt } from './openai.prompts';
 
 dotenv.config();
 
@@ -75,81 +76,29 @@ export class OpenAIService {
         userDescription: string,
         options?: ExtractionOptions
     ): Promise<ExtractedCriteria> {
-        // Build context from existing criteria if available
-        let existingContext = '';
-        if (options?.existingCriteria) {
-            existingContext = `
-    
-    ℹ️ L'utilisateur a déjà défini les critères suivants :
-    - Budget max : ${options.existingCriteria.criteres_stricts.budget_max || 'non défini'} CHF
-    - Zones : ${options.existingCriteria.criteres_stricts.zones.join(', ') || 'non définies'}
-    - Pièces : ${options.existingCriteria.criteres_stricts.nombre_pieces_min || '?'} à ${options.existingCriteria.criteres_stricts.nombre_pieces_max || '?'}
-    - Type logement : ${options.existingCriteria.criteres_stricts.type_logement.join(', ') || 'non défini'}
-    - Résumé actuel : "${options.existingCriteria.resume_humain}"
-    
-    Sa nouvelle demande peut être :
-    - Une modification de critères existants (ex: "en fait je veux monter à 2800 CHF")
-    - Un ajout de critères (ex: "j'aimerais aussi un balcon")
-    - Une reformulation complète
-    
-    Dans tous les cas, retourne les critères COMPLETS et FINAUX après modification.`;
-        }
 
-        // Build conversation history context
-        let historyContext = '';
-        if (options?.conversationHistory && options.conversationHistory.length > 0) {
-            const recentHistory = options.conversationHistory.slice(-5); // Last 5 messages
-            historyContext = `
-    
-    📝 Contexte de la conversation récente :
-${recentHistory.map(msg => `    ${msg.role === 'user' ? 'Utilisateur' : 'Assistant'} : "${msg.content}"`).join('\n')}
-    
-    Utilise ce contexte pour mieux comprendre la demande actuelle.`;
-        }
-
-        const prompt = `
-    Tu es un assistant immobilier expert pour Genève. Ta tâche est d'extraire les critères de recherche d'un utilisateur à partir de sa description en langage naturel.${existingContext}${historyContext}
-    
-    Règles d'extraction :
-    1. **Critères stricts** (deal-breakers) : budget_max, zones (quartiers/villes), nombre_pieces (min/max), type_logement, disponibilite.
-       - Si l'utilisateur dit "max", "obligatoire", "minimum" -> strict.
-       - Zones genevoises reconnues : Centre-ville (1201), Carouge (1227), Plainpalais (1205), Eaux-Vives (1207/1208), Lancy (1212/1213), Champel, Servette, etc.
-    2. **Critères de confort** (nice-to-have) : dernier_etage, calme, balcon, meuble, parking, ascenseur, etc.
-       - Si l'utilisateur dit "si possible", "idéalement", "je privilégie" -> confort.
-    3. **Critères manquants** : Liste les critères stricts critiques qui n'ont pas été mentionnés (ex: budget, zone, nombre de pièces).
-    
-    Retourne UNIQUEMENT un JSON valide avec la structure suivante :
-    {
-      "criteres_stricts": {
-        "budget_max": number | null,
-        "zones": string[],
-        "nombre_pieces_min": number | null,
-        "nombre_pieces_max": number | null,
-        "type_logement": string[],
-        "disponibilite": string | null
-      },
-      "criteres_confort": {
-        "dernier_etage": boolean,
-        "calme": boolean,
-        "balcon": boolean,
-        "meuble": boolean,
-        "parking": boolean,
-        "ascenseur": boolean,
-        "autres": string[]
-      },
-      "criteres_manquants": string[],
-      "confiance": number (0.0 à 1.0),
-      "resume_humain": "Un court résumé de la recherche (ex: 'Recherche un 3 pièces à Carouge pour 2000 CHF max...')"
-    }
-
-    Description utilisateur : "${userDescription}"
-    `;
+        const userContent = formatUserPrompt(userDescription, options);
 
         try {
             const completion = await openai.chat.completions.create({
-                messages: [{ role: "user", content: prompt }],
+                messages: [
+                    { role: "system", content: SYSTEM_PROMPT },
+                    { role: "user", content: userContent }
+                ],
                 model: "gpt-5-nano",
-                response_format: { type: "json_object" }
+                // @ts-ignore
+                response_format: {
+                    type: "json_schema",
+                    json_schema: {
+                        name: "extraction_criteres",
+                        strict: false,
+                        schema: CRITERIA_SCHEMA
+                    }
+                },
+                // @ts-ignore
+                reasoning_effort: "medium",
+                // @ts-ignore
+                verbosity: "medium"
             });
 
             const content = completion.choices[0].message.content;

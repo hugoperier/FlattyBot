@@ -565,6 +565,198 @@
         "Acacias"
       ]
     },
+    "codes_postaux": {
+      "1201": [
+        "Pâquis",
+        "Grottes",
+        "Saint-Gervais"
+      ],
+      "1202": [
+        "Petit-Saconnex",
+        "Servette",
+        "Pâquis"
+      ],
+      "1203": [
+        "Saint-Jean",
+        "Charmilles"
+      ],
+      "1204": [
+        "Cité-Centre"
+      ],
+      "1205": [
+        "Plainpalais"
+      ],
+      "1206": [
+        "Champel"
+      ],
+      "1207": [
+        "Eaux-Vives"
+      ],
+      "1208": [
+        "Eaux-Vives"
+      ],
+      "1209": [
+        "Petit-Saconnex"
+      ],
+      "1211": [
+        "Genève"
+      ],
+      "1212": [
+        "Lancy"
+      ],
+      "1213": [
+        "Lancy",
+        "Onex"
+      ],
+      "1214": [
+        "Vernier"
+      ],
+      "1215": [
+        "Grand-Saconnex"
+      ],
+      "1216": [
+        "Meyrin"
+      ],
+      "1217": [
+        "Meyrin"
+      ],
+      "1218": [
+        "Grand-Saconnex"
+      ],
+      "1219": [
+        "Vernier"
+      ],
+      "1220": [
+        "Vernier"
+      ],
+      "1222": [
+        "Collonge-Bellerive"
+      ],
+      "1223": [
+        "Cologny"
+      ],
+      "1224": [
+        "Chêne-Bougeries"
+      ],
+      "1225": [
+        "Chêne-Bourg"
+      ],
+      "1226": [
+        "Thônex"
+      ],
+      "1227": [
+        "Carouge",
+        "Acacias"
+      ],
+      "1228": [
+        "Plan-les-Ouates"
+      ],
+      "1231": [
+        "Chêne-Bougeries"
+      ],
+      "1232": [
+        "Confignon"
+      ],
+      "1233": [
+        "Bernex"
+      ],
+      "1234": [
+        "Veyrier"
+      ],
+      "1236": [
+        "Cartigny"
+      ],
+      "1237": [
+        "Avully"
+      ],
+      "1239": [
+        "Collex-Bossy"
+      ],
+      "1241": [
+        "Puplinge"
+      ],
+      "1242": [
+        "Satigny"
+      ],
+      "1243": [
+        "Presinge"
+      ],
+      "1244": [
+        "Choulex"
+      ],
+      "1245": [
+        "Collonge-Bellerive"
+      ],
+      "1246": [
+        "Corsier"
+      ],
+      "1247": [
+        "Anières"
+      ],
+      "1248": [
+        "Hermance"
+      ],
+      "1251": [
+        "Gy"
+      ],
+      "1252": [
+        "Meinier"
+      ],
+      "1253": [
+        "Vandœuvres"
+      ],
+      "1254": [
+        "Jussy"
+      ],
+      "1255": [
+        "Veyrier"
+      ],
+      "1256": [
+        "Troinex"
+      ],
+      "1257": [
+        "Bardonnex"
+      ],
+      "1258": [
+        "Perly-Certoux"
+      ],
+      "1281": [
+        "Russin"
+      ],
+      "1283": [
+        "Dardagny"
+      ],
+      "1284": [
+        "Chancy"
+      ],
+      "1285": [
+        "Avusy"
+      ],
+      "1286": [
+        "Soral"
+      ],
+      "1287": [
+        "Laconnex"
+      ],
+      "1288": [
+        "Aire-la-Ville"
+      ],
+      "1290": [
+        "Versoix"
+      ],
+      "1292": [
+        "Pregny-Chambésy"
+      ],
+      "1293": [
+        "Bellevue"
+      ],
+      "1294": [
+        "Genthod"
+      ],
+      "1298": [
+        "Céligny"
+      ]
+    },
     "lieux_dits_historiques": {
       "florissant": [
         "Champel"

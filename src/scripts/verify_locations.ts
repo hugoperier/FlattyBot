@@ -55,6 +55,32 @@ async function main() {
     }
 
     console.log('');
+
+    // 4. Validate Postal Code Resolution
+    console.log('--- Checking Postal Code Resolution ---');
+    const postalTests = [
+        { code: '1201', expected: ['Pâquis', 'Grottes', "Saint-Gervais"] },
+        { code: '1227', expected: ['Carouge', 'Acacias'] },
+        { code: '1212', expected: ['Lancy'] }
+    ];
+
+    let postalErrors = 0;
+    postalTests.forEach(test => {
+        const results = locationRepo.findCanonical(test.code);
+        const missing = test.expected.filter(e => !results.includes(e));
+        if (missing.length > 0) {
+            console.error(`[POSTAL ERROR] Code ${test.code} missing expected locations: ${missing.join(', ')}. Found: ${results.join(', ')}`);
+            postalErrors++;
+        }
+    });
+
+    if (postalErrors === 0) {
+        console.log('✅ Postal Code resolution passed.');
+    } else {
+        issueCount += postalErrors;
+    }
+
+    console.log('');
     if (issueCount === 0) {
         console.log('✅ All checks passed successfully!');
     } else {
