@@ -37,4 +37,4 @@ jobs:
             "supabase_url=${{ secrets.SUPABASE_URL }}"
             "supabase_key=${{ secrets.SUPABASE_KEY }}"
             "admin_telegram_id=${{ secrets.ADMIN_TELEGRAM_ID }}"
-            "schema_name=flatscanner"
+            "DB_SCHEMA=flatscanner"
