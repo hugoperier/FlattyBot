@@ -43,6 +43,7 @@ RUN addgroup --system --gid 1001 nodejs && \
 # Copy only necessary files from builder
 COPY --from=builder --chown=botuser:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=botuser:nodejs /app/dist ./dist
+COPY --from=builder --chown=botuser:nodejs /app/src/data ./src/data
 COPY --from=builder --chown=botuser:nodejs /app/package*.json ./
 
 # Switch to non-root user
