@@ -161,8 +161,6 @@ export class LocationRepository {
     public findCanonical(input: string): string[] {
         if (!input) return [];
         const normalized = input.toLowerCase().trim();
-        console.log(this.lookupMap);
-        console.log(input, normalized);
 
         const matches = this.lookupMap.get(normalized);
         return matches ? Array.from(matches) : [];

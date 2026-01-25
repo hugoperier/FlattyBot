@@ -165,89 +165,27 @@ class FilterTester {
         }
 
         console.log('\n───────────────────────────────────────────────────────────────');
-        console.log('Commandes: [n]ext | [p]rev | [s]ummary | [q]uit');
+        console.log('Commandes: [n]ext | [p]rev | [m]atch | [s]ummary | [q]uit');
         console.log('───────────────────────────────────────────────────────────────');
     }
 
     private displayRejectionReason(post: AdWithPost, score: ScoreResult) {
         if (!this.selectedCriteria) return;
 
-        const stricts = this.selectedCriteria.criteres_stricts as ExtractedCriteria['criteres_stricts'];
-        const reasons: string[] = [];
-
         console.log('\n🔍 Analyse des Critères Stricts:');
 
-        // Zone
-        if (stricts.zones && stricts.zones.length > 0) {
-            const adLocation = `${post.ville} ${post.quartier} ${post.code_postal} ${post.adresse_complete}`.toLowerCase();
-            const zoneMatch = stricts.zones.some(z => adLocation.includes(z.toLowerCase()));
-            if (zoneMatch) {
-                console.log(`   ✅ Zone: Recherché [${stricts.zones.join(', ')}] - Trouvé dans "${adLocation}"`);
-            } else {
-                console.log(`   ❌ Zone: Recherché [${stricts.zones.join(', ')}] - Pas trouvé dans "${adLocation}"`);
-                reasons.push('Zone non correspondante');
-            }
-        }
+        // Display all strict criteria checks
+        const strictChecks = score.checks.filter(c => c.isStrict);
+        strictChecks.forEach(check => {
+            const icon = check.passed ? '✅' : '❌';
+            console.log(`   ${icon} ${check.name}: ${check.details}`);
+        });
 
-        // Budget
-        if (stricts.budget_max) {
-            if (post.loyer_total) {
-                if (post.loyer_total <= stricts.budget_max) {
-                    console.log(`   ✅ Budget: CHF ${post.loyer_total} ≤ CHF ${stricts.budget_max}`);
-                } else {
-                    console.log(`   ❌ Budget: CHF ${post.loyer_total} > CHF ${stricts.budget_max}`);
-                    reasons.push(`Budget dépassé (CHF ${post.loyer_total} > CHF ${stricts.budget_max})`);
-                }
-            } else {
-                console.log(`   ⚠️  Budget: Prix non disponible (accordé par défaut)`);
-            }
-        }
-
-        // Pièces
-        if (stricts.nombre_pieces_min || stricts.nombre_pieces_max) {
-            if (post.nombre_pieces !== null) {
-                let match = true;
-                let reason = '';
-                if (stricts.nombre_pieces_min && post.nombre_pieces < stricts.nombre_pieces_min) {
-                    match = false;
-                    reason = `trop peu (${post.nombre_pieces} < ${stricts.nombre_pieces_min})`;
-                }
-                if (stricts.nombre_pieces_max && post.nombre_pieces > stricts.nombre_pieces_max) {
-                    match = false;
-                    reason = `trop (${post.nombre_pieces} > ${stricts.nombre_pieces_max})`;
-                }
-
-                if (match) {
-                    console.log(`   ✅ Pièces: ${post.nombre_pieces} dans la plage [${stricts.nombre_pieces_min || '?'}-${stricts.nombre_pieces_max || '?'}]`);
-                } else {
-                    console.log(`   ❌ Pièces: ${reason}`);
-                    reasons.push(`Nombre de pièces ${reason}`);
-                }
-            } else {
-                console.log(`   ⚠️  Pièces: Non disponible (accordé par défaut)`);
-            }
-        }
-
-        // Type
-        if (stricts.type_logement && stricts.type_logement.length > 0) {
-            if (post.type_logement) {
-                const typeMatch = stricts.type_logement.some(t => post.type_logement!.toLowerCase().includes(t.toLowerCase()));
-                if (typeMatch) {
-                    console.log(`   ✅ Type: "${post.type_logement}" correspond à [${stricts.type_logement.join(', ')}]`);
-                } else {
-                    console.log(`   ❌ Type: "${post.type_logement}" ne correspond pas à [${stricts.type_logement.join(', ')}]`);
-                    reasons.push(`Type de logement non correspondant`);
-                }
-            } else {
-                console.log(`   ⚠️  Type: Non disponible (accordé par défaut)`);
-            }
-        }
-
-        if (reasons.length > 0) {
-            console.log(`\n💥 Raison(s) du rejet: ${reasons.join(', ')}`);
+        if (score.rejectionReasons.length > 0) {
+            console.log(`\n💥 Raison(s) du rejet: ${score.rejectionReasons.join(', ')}`);
 
             // Track reasons
-            reasons.forEach(reason => {
+            score.rejectionReasons.forEach(reason => {
                 const count = this.stats.rejectionReasons.get(reason) || 0;
                 this.stats.rejectionReasons.set(reason, count + 1);
             });
@@ -255,17 +193,20 @@ class FilterTester {
     }
 
     private displaySuccessDetails(score: ScoreResult) {
-        console.log('\n✅ Critères Stricts Validés:');
-        if (score.criteres_stricts_matches.length > 0) {
-            score.criteres_stricts_matches.forEach(match => {
-                console.log(`   ✅ ${match}`);
+        const strictPassed = score.checks.filter(c => c.isStrict && c.passed);
+        const confortPassed = score.checks.filter(c => !c.isStrict && c.passed);
+
+        if (strictPassed.length > 0) {
+            console.log('\n✅ Critères Stricts Validés:');
+            strictPassed.forEach(check => {
+                console.log(`   ✅ ${check.name}: ${check.details}`);
             });
         }
 
-        if (score.criteres_confort_matches.length > 0) {
+        if (confortPassed.length > 0) {
             console.log('\n⭐ Critères Confort Validés:');
-            score.criteres_confort_matches.forEach(match => {
-                console.log(`   ✅ ${match}`);
+            confortPassed.forEach(check => {
+                console.log(`   ✅ ${check.name} (+${check.points}pts): ${check.details}`);
             });
         }
     }
@@ -290,6 +231,18 @@ class FilterTester {
         }
 
         console.log('\n───────────────────────────────────────────────────────────────');
+    }
+
+    private findNextMatch(startIndex: number): number {
+        // Search from startIndex + 1 to end
+        for (let i = startIndex + 1; i < this.currentPosts.length; i++) {
+            const post = this.currentPosts[i];
+            const score = this.scoringService.calculateScore(post, this.selectedCriteria!);
+            if (score.score_total > 0) {
+                return i;
+            }
+        }
+        return -1; // No match found
     }
 
     private async navigate() {
@@ -329,6 +282,14 @@ class FilterTester {
                     this.currentIndex--;
                 } else {
                     console.log('❌ Premier post atteint.');
+                    await this.prompt('Appuyez sur Entrée pour continuer...');
+                }
+            } else if (cmd === 'm' || cmd === 'match') {
+                const nextMatchIndex = this.findNextMatch(this.currentIndex);
+                if (nextMatchIndex !== -1) {
+                    this.currentIndex = nextMatchIndex;
+                } else {
+                    console.log('❌ Aucun autre match trouvé.');
                     await this.prompt('Appuyez sur Entrée pour continuer...');
                 }
             } else if (cmd === 's' || cmd === 'summary') {
