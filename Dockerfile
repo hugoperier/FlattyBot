@@ -35,6 +35,7 @@ WORKDIR /app
 
 # Set NODE_ENV to production
 ENV NODE_ENV=production
+ENV DB_SCHEMA=flatscanner
 
 # Create non-root user for security
 RUN addgroup --system --gid 1001 nodejs && \
