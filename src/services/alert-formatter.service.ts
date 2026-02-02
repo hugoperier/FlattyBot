@@ -121,6 +121,53 @@ export class AlertFormatterService {
     }
 
     /**
+     * Build the address following specific rules:
+     * 1. Street + Number (if both exist) + optionally District
+     * 2. Zip code (fallback)
+     * 3. City (fallback)
+     */
+    private buildAddress(ad: AdWithPost): string | null {
+        // 1: Numero de rue et rue (si les deux sont definis)
+        if (ad.rue && ad.numero_rue) {
+            let addr = `${ad.rue} ${ad.numero_rue}`;
+
+            // Suivi du quartier (si lui aussi defini)
+            if (ad.quartier) {
+                addr += `, ${ad.quartier}`;
+            }
+
+            // Add city if defined (no default)
+            if (ad.ville) {
+                addr += `, ${ad.ville}`;
+            }
+
+            return addr;
+        }
+
+        // 2: Quartier - Ville (Requested fallback)
+        if (ad.quartier) {
+            let addr = ad.quartier;
+            // Add city if defined and not redundant
+            if (ad.ville && ad.ville.toLowerCase() !== ad.quartier.toLowerCase()) {
+                addr += `, ${ad.ville}`;
+            }
+            return addr;
+        }
+
+        // 3: Code postal
+        if (ad.code_postal) {
+            return `${ad.code_postal}${ad.ville ? ' ' + ad.ville : ''}`;
+        }
+
+        // 4: Enfin la ville
+        if (ad.ville) {
+            return ad.ville;
+        }
+
+        return null;
+    }
+
+    /**
      * Format the alert message
      */
     async formatAlertMessage(ad: AdWithPost, score: ScoreResult): Promise<string> {
@@ -154,19 +201,13 @@ export class AlertFormatterService {
         msg += '\n';
 
         // Location - Show EITHER complete address OR quartier/code_postal/ville
-        const adresse = ad.adresse_complete;
-
-        if (adresse && adresse !== '') {
-            // If we have a complete address, show it as a clickable Google Maps link
+        const adresse = this.buildAddress(ad);
+        if (adresse) {
             const encodedAddress = encodeURIComponent(adresse);
             const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
             msg += `📍 [${adresse}](${mapsUrl})\n`;
         } else {
-            // Otherwise, show quartier/code_postal/ville
-            const quartier = ad.quartier ? `${ad.quartier}, ` : '';
-            const codePostal = this.formatValue(ad.code_postal, '');
-            const ville = this.formatValue(ad.ville, 'Genève');
-            msg += `📍 ${quartier}${codePostal} ${ville}\n`;
+            msg += `📍 Localisation non communiquée\n`;
         }
 
         // Price

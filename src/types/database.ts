@@ -23,6 +23,8 @@ export interface Ad {
     id: number;
     facebook_post_id: string;
     adresse_complete: string | null;
+    rue: string | null;
+    numero_rue: string | null;
     ville: string | null;
     code_postal: string | null;
     quartier: string | null;
