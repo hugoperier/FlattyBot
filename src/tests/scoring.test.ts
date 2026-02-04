@@ -25,7 +25,9 @@ const mockAd: Ad = {
     date_disponibilite: '2023-12-01',
     urgence: false,
     image_path: null,
-    created_at: new Date().toISOString()
+    created_at: new Date().toISOString(),
+    rue: 'Rue de Carouge',
+    numero_rue: '12'
 };
 
 const mockCriteria: UserCriteria = {
