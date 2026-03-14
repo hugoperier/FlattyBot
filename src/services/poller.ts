@@ -5,18 +5,21 @@ import { ScoreResult, ScoringService } from './scoring.service';
 import { AlertFormatterService } from './alert-formatter.service';
 import { bot } from '../bot';
 import { AdWithPost, User, UserCriteria } from '../types/database';
+import { AdAggregationService, AdContext } from './ad-aggregation.service';
 
 export class PollingService {
     private adRepo: AdRepository;
     private userRepo: UserRepository;
     private alertRepo: AlertRepository;
     private scoringService: ScoringService;
+    private adAggregationService: AdAggregationService;
 
     constructor() {
         this.adRepo = new AdRepository();
         this.userRepo = new UserRepository();
         this.alertRepo = new AlertRepository();
         this.scoringService = new ScoringService();
+        this.adAggregationService = new AdAggregationService();
     }
 
     async startPolling(intervalMs: number = 3 * 60 * 1000) {
@@ -28,30 +31,33 @@ export class PollingService {
     private async poll() {
         try {
             console.log('Polling for new ads...');
-            const ads = await this.adRepo.getRecentAds(48); // Last 48h
+            const adContexts = await this.adAggregationService.getAdsForPolling(48); // Last 48h for FB, incremental for MKSA
             const users = await this.userRepo.getAllActiveUsers();
 
-            console.log(`Found ${ads.length} ads and ${users.length} active users.`);
+            console.log(`Found ${adContexts.length} ads (all sources) and ${users.length} active users.`);
 
             for (const user of users) {
-                await this.processUser(user, ads);
+                await this.processUser(user, adContexts);
             }
         } catch (error) {
             console.error('Error in polling loop:', error);
         }
     }
 
-    private async processUser(user: User, ads: AdWithPost[]) {
+    private async processUser(user: User, adContexts: AdContext[]) {
         const criteria = await this.userRepo.getCriteria(user.telegram_id);
         if (!criteria) return;
 
-        for (const ad of ads) {
-            // Check if already sent
-            const alreadySent = await this.alertRepo.hasAlertBeenSent(user.telegram_id, ad.id);
+        for (const ctx of adContexts) {
+            const scoringAd = ctx.scoringAd;
+            const adId = ctx.source === 'facebook' ? ctx.facebookAd!.id : ctx.mksaAd!.id;
+
+            // De-duplication for all sources
+            const alreadySent = await this.alertRepo.hasAlertBeenSent(user.telegram_id, adId, ctx.source);
             if (alreadySent) continue;
 
             // Calculate score
-            const scoreResult = this.scoringService.calculateScore(ad, criteria);
+            const scoreResult = this.scoringService.calculateScore(scoringAd, criteria);
 
             // Thresholds
             // If score > 0 (meaning strict criteria met), we consider sending
@@ -60,38 +66,63 @@ export class PollingService {
             // So if score > 0, it's a match.
 
             if (scoreResult.score_total > 0) {
-                await this.sendAlert(user.telegram_id, ad, scoreResult);
+                await this.sendAlert(user.telegram_id, ctx, scoreResult);
             }
         }
     }
 
-    private async sendAlert(userId: number, ad: AdWithPost, score: ScoreResult) {
+    private async sendAlert(userId: number, ctx: AdContext, score: ScoreResult) {
         try {
             const formatter = new AlertFormatterService();
 
-            // Format the message
-            const message = await formatter.formatAlertMessage(ad, score);
+            if (ctx.source === 'facebook' && ctx.facebookAd) {
+                const ad = ctx.facebookAd;
 
-            // Check if we have a valid image
-            const imageUrl = await formatter.getImageUrl(ad.image_path);
+                // Format the message
+                const message = await formatter.formatFacebookAlertMessage(ad, score);
 
-            if (imageUrl) {
-                // Send with image
-                await bot.api.sendPhoto(userId, imageUrl, {
-                    caption: message,
-                    parse_mode: 'Markdown'
-                });
-            } else {
-                // Send text only
-                await bot.api.sendMessage(userId, message, {
-                    parse_mode: 'Markdown'
-                });
+                // Check if we have a valid image
+                const imageUrl = await formatter.getFacebookImageUrl(ad.image_path);
+
+                if (imageUrl) {
+                    // Send with image
+                    await bot.api.sendPhoto(userId, imageUrl, {
+                        caption: message,
+                        parse_mode: 'Markdown'
+                    });
+                } else {
+                    // Send text only
+                    await bot.api.sendMessage(userId, message, {
+                        parse_mode: 'Markdown'
+                    });
+                }
+
+                console.log(`Alert sent to user ${userId} for Facebook ad ${ad.id}`);
+            } else if (ctx.source === 'mksa' && ctx.mksaAd) {
+                const ad = ctx.mksaAd;
+
+                const message = formatter.formatMksaAlertMessage(ad, ctx.scoringAd, score);
+                const imageUrl = formatter.getMksaImageUrl(ad);
+
+                if (imageUrl) {
+                    await bot.api.sendPhoto(userId, imageUrl, {
+                        caption: message,
+                        parse_mode: 'Markdown'
+                    });
+                } else {
+                    await bot.api.sendMessage(userId, message, {
+                        parse_mode: 'Markdown'
+                    });
+                }
+
+                console.log(`Alert sent to user ${userId} for MKSA ad ${ad.id}`);
             }
 
-            // Save alert
+            // Save alert for all sources
             await this.alertRepo.saveAlert({
                 user_id: userId,
-                annonce_id: ad.id,
+                annonce_id: ctx.source === 'facebook' ? ctx.facebookAd!.id : ctx.mksaAd!.id,
+                source: ctx.source,
                 score_total: score.score_total,
                 score_criteres_stricts: score.score_criteres_stricts,
                 score_criteres_confort: score.score_criteres_confort,
@@ -100,8 +131,6 @@ export class PollingService {
                 badges: score.badges,
                 user_action: 'SENT'
             });
-
-            console.log(`Alert sent to user ${userId} for ad ${ad.id}`);
         } catch (error) {
             console.error(`Failed to send alert to ${userId}:`, error);
         }

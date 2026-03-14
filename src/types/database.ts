@@ -70,7 +70,8 @@ export interface FacebookPost {
 export interface SentAlert {
     id?: number;
     user_id: number;
-    annonce_id: number;
+    annonce_id: string | number;
+    source?: string;
     score_total: number;
     score_criteres_stricts: number;
     score_criteres_confort: number;

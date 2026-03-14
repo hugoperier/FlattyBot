@@ -1,6 +1,7 @@
 import { supabase } from '../config/supabase';
-import { AdWithPost } from '../types/database';
+import { Ad, AdWithPost } from '../types/database';
 import { ScoreResult } from './scoring.service';
+import { MksaAnnonce } from '../repositories/mksa-ad.repository';
 
 export class AlertFormatterService {
     constructor() {
@@ -68,9 +69,9 @@ export class AlertFormatterService {
     }
 
     /**
-     * Get the public URL for an image from Supabase bucket
+     * Get the public URL for a Facebook image stored in Supabase bucket.
      */
-    async getImageUrl(imagePath: string | null): Promise<string | null> {
+    async getFacebookImageUrl(imagePath: string | null): Promise<string | null> {
         if (!imagePath) {
             return null;
         }
@@ -100,6 +101,41 @@ export class AlertFormatterService {
         }
 
         return null;
+    }
+
+    /**
+     * For MKSA ads, we use the first external image URL if available.
+     */
+    getMksaImageUrl(ad: MksaAnnonce): string | null {
+        if (!ad.image_urls) return null;
+
+        // Supabase JSONB typically returns an array already
+        if (Array.isArray(ad.image_urls)) {
+            const first = ad.image_urls[0];
+            return typeof first === 'string' ? first : null;
+        }
+
+        if (typeof ad.image_urls !== 'string') return null;
+
+        const raw = ad.image_urls.trim();
+        if (!raw) return null;
+
+        // Sample data shows JSON stringified arrays in CSV exports.
+        if (raw.startsWith('[')) {
+            try {
+                const parsed = JSON.parse(raw) as unknown;
+                if (Array.isArray(parsed)) {
+                    const first = parsed[0];
+                    return typeof first === 'string' ? first : null;
+                }
+            } catch {
+                // fall through
+            }
+        }
+
+        // Fallback: CSV-style split (legacy / inconsistent storage)
+        const first = raw.split(',')[0]?.trim();
+        return first || null;
     }
 
     /**
@@ -168,9 +204,24 @@ export class AlertFormatterService {
     }
 
     /**
-     * Format the alert message
+     * Build a generic Google Maps link from a free-form address.
      */
-    async formatAlertMessage(ad: AdWithPost, score: ScoreResult): Promise<string> {
+    private buildMapsLinkFromAddress(address: string): string {
+        const encodedAddress = encodeURIComponent(address);
+        return `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+    }
+
+    /**
+     * Build a Google Maps link from coordinates.
+     */
+    private buildMapsLinkFromCoords(lat: number, lng: number): string {
+        return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    }
+
+    /**
+     * Format the alert message for a Facebook-origin ad.
+     */
+    async formatFacebookAlertMessage(ad: AdWithPost, score: ScoreResult): Promise<string> {
         const isPremium = score.score_total >= 120;
         let msg = '';
 
@@ -203,8 +254,7 @@ export class AlertFormatterService {
         // Location - Show EITHER complete address OR quartier/code_postal/ville
         const adresse = this.buildAddress(ad);
         if (adresse) {
-            const encodedAddress = encodeURIComponent(adresse);
-            const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+            const mapsUrl = this.buildMapsLinkFromAddress(adresse);
             msg += `📍 [${adresse}](${mapsUrl})\n`;
         } else {
             msg += `📍 Localisation non communiquée\n`;
@@ -252,6 +302,99 @@ export class AlertFormatterService {
         // Facebook link
         const fbLink = this.getFacebookLink(ad);
         msg += `\n[👉 Voir l'annonce sur Facebook](${fbLink})`;
+
+        return msg;
+    }
+
+    /**
+     * Format the alert message for a MKSA (régie) ad.
+     * Uses both the raw MKSA row and the adapted scoring ad.
+     */
+    formatMksaAlertMessage(raw: MksaAnnonce, scoringAd: Ad, score: ScoreResult): string {
+        const isPremium = score.score_total >= 120;
+        let msg = '';
+
+        // Header
+        const regieLabel = raw.regie || 'Régie immobilière';
+        if (isPremium) {
+            msg += `🌟 **MATCH PARFAIT – ${regieLabel}** 🌟\n\n`;
+        } else {
+            msg += `🏢 **Annonce régie – ${regieLabel}**\n\n`;
+        }
+
+        // Time: use created_at as proxy for publication date
+        const timePosted = this.formatTimePosted(raw.created_at);
+        msg += `🕒 Publiée ${timePosted}\n\n`;
+
+        // Property details
+        const title = this.formatValue(raw.title, 'Logement');
+        const pieces = scoringAd.nombre_pieces
+            ? `${scoringAd.nombre_pieces} pièce${scoringAd.nombre_pieces > 1 ? 's' : ''}`
+            : 'Nombre de pièces non communiqué';
+        const surface = scoringAd.surface_m2
+            ? `${scoringAd.surface_m2}m²`
+            : '';
+
+        msg += `🏠 **${title}** - ${pieces}`;
+        if (surface) {
+            msg += ` - ${surface}`;
+        }
+        msg += '\n';
+
+        // Location: prefer full address, then ville
+        const adresse = raw.address || scoringAd.adresse_complete || scoringAd.ville || null;
+        if (adresse) {
+            let mapsUrl: string;
+            if (raw.latitude && raw.longitude) {
+                mapsUrl = this.buildMapsLinkFromCoords(raw.latitude, raw.longitude);
+            } else {
+                mapsUrl = this.buildMapsLinkFromAddress(adresse);
+            }
+            msg += `📍 [${adresse}](${mapsUrl})\n`;
+        } else {
+            msg += `📍 Localisation non communiquée\n`;
+        }
+
+        // Price (always monthly here)
+        const prix = scoringAd.loyer_total
+            ? `**${scoringAd.loyer_total} ${raw.currency || 'CHF'}/mois**`
+            : '**Prix à discuter**';
+        msg += `💰 ${prix}\n\n`;
+
+        // Badges
+        if (score.badges.length > 0) {
+            msg += `${score.badges.join(' ')}\n\n`;
+        }
+
+        // Comfort criteria matches
+        if (score.criteres_confort_matches.length > 0) {
+            msg += `✅ **Bonus:** ${score.criteres_confort_matches.join(', ')}\n\n`;
+        }
+
+        // Additional info
+        const additionalInfo: string[] = [];
+        if (raw.balcony || scoringAd.balcon) additionalInfo.push('🌿 Balcon');
+        if (scoringAd.terrasse) additionalInfo.push('🌿 Terrasse');
+        if (raw.car_park || scoringAd.parking_inclus) additionalInfo.push('🚗 Parking');
+        if (scoringAd.meuble) additionalInfo.push('🛋️ Meublé');
+
+        if (additionalInfo.length > 0) {
+            msg += `${additionalInfo.join(' • ')}\n\n`;
+        }
+
+        // Availability
+        const dispo = raw.available_date || scoringAd.date_disponibilite;
+        if (dispo) {
+            const disponibilite = new Date(dispo).toLocaleDateString('fr-FR');
+            msg += `📅 Disponible à partir du ${disponibilite}\n`;
+        }
+
+        // No "urgence" flag for régies for now; can be added later if needed
+
+        // Source link
+        if (raw.source_url) {
+            msg += `\n[👉 Voir l'annonce sur le site de la régie](${raw.source_url})`;
+        }
 
         return msg;
     }
