@@ -2,19 +2,39 @@ import { supabase } from '../config/supabase';
 import { User, UserCriteria } from '../types/database';
 
 export class UserRepository {
-    async createUser(telegramId: number): Promise<User | null> {
+    async createUser(userData: {
+        telegram_id: number;
+        first_name?: string;
+        last_name?: string;
+        username?: string;
+        language_code?: string;
+        referral_code?: string;
+    }): Promise<User | null> {
+        // Check if user exists to preserve authorization status
+        const { data: existingUser } = await supabase
+            .from('users')
+            .select('pending_authorization')
+            .eq('telegram_id', userData.telegram_id)
+            .single();
+
+        const upsertData: any = {
+            ...userData,
+            last_interaction: new Date().toISOString()
+        };
+
+        // Only set pending_authorization to true for new users
+        if (!existingUser) {
+            upsertData.pending_authorization = true;
+        }
+
         const { data, error } = await supabase
             .from('users')
-            .upsert({
-                telegram_id: telegramId,
-                last_interaction: new Date().toISOString(),
-                pending_authorization: true
-            })
+            .upsert(upsertData)
             .select()
             .single();
 
         if (error) {
-            console.error('Error creating user:', error);
+            console.error('Error creating/updating user:', error);
             return null;
         }
         return data;

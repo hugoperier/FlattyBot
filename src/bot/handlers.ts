@@ -21,8 +21,17 @@ export function setupHandlers(bot: Bot<MyContext>) {
     bot.command('start', async (ctx) => {
         if (!ctx.from?.id) return;
 
-        // Get user (will always exist because of middleware)
-        const user = await userRepository.getUser(ctx.from.id);
+        const referralCode = ctx.match || undefined;
+
+        // Create or update user with latest Telegram info and referral code
+        const user = await userRepository.createUser({
+            telegram_id: ctx.from.id,
+            first_name: ctx.from.first_name,
+            last_name: ctx.from.last_name,
+            username: ctx.from.username,
+            language_code: ctx.from.language_code,
+            referral_code: referralCode
+        });
 
         if (!user) {
             await ctx.reply("❌ Une erreur s'est produite. Merci de réessayer.");

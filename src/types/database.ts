@@ -1,5 +1,10 @@
 export interface User {
     telegram_id: number;
+    first_name?: string;
+    last_name?: string;
+    username?: string;
+    language_code?: string;
+    referral_code?: string;
     is_active: boolean;
     is_paused: boolean;
     onboarding_completed: boolean;
