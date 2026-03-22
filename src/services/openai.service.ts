@@ -85,7 +85,7 @@ export class OpenAIService {
                     { role: "system", content: SYSTEM_PROMPT },
                     { role: "user", content: userContent }
                 ],
-                model: "gpt-5-nano",
+                model: "gpt-5.4-nano",
                 // @ts-ignore
                 response_format: {
                     type: "json_schema",

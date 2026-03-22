@@ -8,12 +8,122 @@ import { supabase } from '../config/supabase';
 import { ADMIN_TELEGRAM_ID } from '../config/admin';
 import { LocationRepository } from '../repositories/LocationRepository';
 import { ProximityGraph } from '../repositories/ProximityGraph';
+import { PollingService } from '../services/poller';
 
 const openaiService = new OpenAIService();
 const userRepository = new UserRepository();
 const alertRepository = new AlertRepository();
 const locationRepository = new LocationRepository();
 const proximityGraph = new ProximityGraph();
+
+// Instantiate highly-local polling service just to run on-demand catchup
+const catchupService = new PollingService();
+
+function determineHousingType(types: string[]): 'appartement' | 'colocation' | 'unknown' {
+    if (!types || types.length === 0) return 'unknown';
+
+    const lowered = types.map(t => t.toLowerCase());
+    const hasAppart = lowered.some(t => t.includes('appart') || t.includes('studio') || t.includes('maison') || t.includes('duplex') || t.includes('loft'));
+    const hasColoc = lowered.some(t => t.includes('coloc') || t.includes('chambre'));
+
+    if (hasAppart && !hasColoc) return 'appartement';
+    if (hasColoc && !hasAppart) return 'colocation';
+    return 'unknown';
+}
+
+async function processLocationValidation(ctx: MyContext, isFromCallback: boolean = false) {
+    if (!ctx.session.tempCriteria) return;
+
+    const extractedZones = ctx.session.tempCriteria.criteres_stricts?.zones || [];
+
+    if (extractedZones.length > 0) {
+        const verifiedZones: string[] = [];
+        const unknownZones: string[] = [];
+
+        for (const z of extractedZones) {
+            const matches = locationRepository.findCanonical(z);
+            if (matches.length > 0) {
+                verifiedZones.push(matches[0]); // Use first canonical match
+            } else {
+                unknownZones.push(z);
+            }
+        }
+
+        // 1. Handle Unknown Zones
+        if (unknownZones.length > 0) {
+            await ctx.reply(
+                `⚠️ **Lieu(x) inconnu(s)**\n\n` +
+                `Je ne suis pas sûr de connaître : **${unknownZones.join(', ')}**.\n\n` +
+                `Peux-tu vérifier l'orthographe ou préciser le quartier ? (Je ne couvre que Genève pour l'instant).`,
+                { parse_mode: 'Markdown' }
+            );
+            if (isFromCallback && ctx.callbackQuery) {
+                await ctx.answerCallbackQuery();
+            }
+            return; // Stop here, user must reply again
+        }
+
+        // 2. Handle Suggestions
+        const suggestions = new Set<string>();
+        for (const z of verifiedZones) {
+            const neighbors = proximityGraph.getNeighbors(z);
+            neighbors.forEach((n: string) => {
+                if (!verifiedZones.includes(n)) suggestions.add(n);
+            });
+        }
+
+        // Update session with verified zones (canonicalized)
+        ctx.session.tempCriteria.criteres_stricts.zones = verifiedZones;
+        ctx.session.verifiedZones = verifiedZones;
+        ctx.session.suggestedZones = Array.from(suggestions);
+
+        // If we have suggestions, ask user
+        if (suggestions.size > 0) {
+            ctx.session.step = 'ONBOARDING_WAITING_LOCATION_VALIDATION';
+
+            const msg = `📍 **Localisation**\n\n` +
+                `J'ai bien noté ta recherche pour : **${verifiedZones.join(', ')}**.\n\n` +
+                `💡 Pour ne rien rater, je te suggère d'inclure aussi les zones limitrophes : **${Array.from(suggestions).join(', ')}**.\n\n` +
+                `On garde tout ?`;
+
+            const kb = new InlineKeyboard()
+                .text("✅ Oui, tout inclure", "conf_loc_all").row()
+                .text("🎯 Non, seulement ma sélection", "conf_loc_strict").row()
+                .text("🔄 Reformuler", "retry_criteria");
+
+            await ctx.reply(msg, { parse_mode: 'Markdown', reply_markup: kb });
+            if (isFromCallback && ctx.callbackQuery) {
+                await ctx.answerCallbackQuery();
+            }
+            return; // Stop here, wait for callback
+        }
+    }
+
+    // If no zones or no suggestions, proceed directly to confirmation
+    ctx.session.step = 'ONBOARDING_WAITING_CONFIRMATION';
+
+    const summary = formatCriteriaSummary(ctx.session.tempCriteria);
+
+    // Add assistant response to conversation history
+    if (!ctx.session.conversationHistory) {
+        ctx.session.conversationHistory = [];
+    }
+    ctx.session.conversationHistory.push({
+        role: 'assistant',
+        content: summary,
+        timestamp: new Date().toISOString()
+    });
+
+    const keyboard = new InlineKeyboard()
+        .text("✅ C'est tout bon !", "confirm_criteria").row()
+        .text("🔄 Reformuler", "retry_criteria")
+        .text("❌ Annuler", "cancel_onboarding");
+
+    await ctx.reply(summary, { parse_mode: 'Markdown', reply_markup: keyboard });
+    if (isFromCallback && ctx.callbackQuery) {
+        await ctx.answerCallbackQuery();
+    }
+}
 
 export function setupHandlers(bot: Bot<MyContext>) {
 
@@ -134,86 +244,32 @@ export function setupHandlers(bot: Bot<MyContext>) {
                 });
 
                 ctx.session.tempCriteria = criteria;
-                console.log('DEBUG: Extracted criteria:', JSON.stringify(criteria, null, 2));
 
-                const extractedZones = criteria?.criteres_stricts?.zones || [];
+                const housingType = determineHousingType(criteria.criteres_stricts?.type_logement || []);
 
-                // --- Location Validation & Suggestion Logic ---
-                if (extractedZones.length > 0) {
-                    const verifiedZones: string[] = [];
-                    const unknownZones: string[] = [];
+                if (housingType === 'appartement') {
+                    ctx.session.tempCriteria.criteres_stricts.type_logement = ['appartement', 'studio', 'maison', 'duplex', 'loft'];
+                    await ctx.reply(`🏡 Type de logement identifié : **🏢 Appartement entier**`, { parse_mode: 'Markdown' });
+                    await processLocationValidation(ctx, false);
+                } else if (housingType === 'colocation') {
+                    ctx.session.tempCriteria.criteres_stricts.type_logement = ['colocation', 'chambre', 'chambre partagée'];
+                    await ctx.reply(`🏡 Type de logement identifié : **🛏️ Colocation / Chambre**`, { parse_mode: 'Markdown' });
+                    await processLocationValidation(ctx, false);
+                } else {
+                    // Proceed to explicit housing type question
+                    ctx.session.step = 'ONBOARDING_WAITING_TYPE_LOGEMENT';
 
-                    for (const z of extractedZones) {
-                        const matches = locationRepository.findCanonical(z);
-                        if (matches.length > 0) {
-                            verifiedZones.push(matches[0]); // Use first canonical match
-                        } else {
-                            unknownZones.push(z);
-                        }
-                    }
+                    const typeMsg = "🏡 **Quel type de logement cherches-tu ?**\n\n" +
+                        "On a des appartements entiers et les colocations/chambres. Choisis ce qui t'intéresse :";
 
-                    // 1. Handle Unknown Zones
-                    if (unknownZones.length > 0) {
-                        await ctx.reply(
-                            `⚠️ **Lieu(x) inconnu(s)**\n\n` +
-                            `Je ne suis pas sûr de connaître : **${unknownZones.join(', ')}**.\n\n` +
-                            `Peux-tu vérifier l'orthographe ou préciser le quartier ? (Je ne couvre que Genève pour l'instant).`,
-                            { parse_mode: 'Markdown' }
-                        );
-                        return; // Stop here, user must reply again
-                    }
+                    const typeKb = new InlineKeyboard()
+                        .text("🏢 Appartement entier", "type_appart").row()
+                        .text("🛏️ Colocation / Chambre", "type_coloc").row()
+                        .text("🤷‍♂️ Les deux m'intéressent", "type_all").row()
+                        .text("❌ Annuler", "cancel_onboarding");
 
-                    // 2. Handle Suggestions
-                    const suggestions = new Set<string>();
-                    for (const z of verifiedZones) {
-                        const neighbors = proximityGraph.getNeighbors(z);
-                        neighbors.forEach(n => {
-                            if (!verifiedZones.includes(n)) suggestions.add(n);
-                        });
-                    }
-
-                    // Update session with verified zones (canonicalized)
-                    ctx.session.tempCriteria.criteres_stricts.zones = verifiedZones;
-                    ctx.session.verifiedZones = verifiedZones;
-                    ctx.session.suggestedZones = Array.from(suggestions);
-
-                    // If we have suggestions, ask user
-                    if (suggestions.size > 0) {
-                        ctx.session.step = 'ONBOARDING_WAITING_LOCATION_VALIDATION';
-
-                        const msg = `📍 **Localisation**\n\n` +
-                            `J'ai bien noté ta recherche pour : **${verifiedZones.join(', ')}**.\n\n` +
-                            `💡 Pour ne rien rater, je te suggère d'inclure aussi les zones limitrophes : **${Array.from(suggestions).join(', ')}**.\n\n` +
-                            `On garde tout ?`;
-
-                        const kb = new InlineKeyboard()
-                            .text("✅ Oui, tout inclure", "conf_loc_all").row()
-                            .text("🎯 Non, seulement ma sélection", "conf_loc_strict").row()
-                            .text("🔄 Reformuler", "retry_criteria");
-
-                        await ctx.reply(msg, { parse_mode: 'Markdown', reply_markup: kb });
-                        return; // Stop here, wait for callback
-                    }
+                    await ctx.reply(typeMsg, { parse_mode: 'Markdown', reply_markup: typeKb });
                 }
-
-                // If no zones or no suggestions, proceed directly to confirmation
-                ctx.session.step = 'ONBOARDING_WAITING_CONFIRMATION';
-
-                const summary = formatCriteriaSummary(ctx.session.tempCriteria);
-
-                // Add assistant response to conversation history
-                ctx.session.conversationHistory.push({
-                    role: 'assistant',
-                    content: summary,
-                    timestamp: new Date().toISOString()
-                });
-
-                const keyboard = new InlineKeyboard()
-                    .text("✅ C'est tout bon !", "confirm_criteria").row()
-                    .text("🔄 Reformuler", "retry_criteria")
-                    .text("❌ Annuler", "cancel_onboarding");
-
-                await ctx.reply(summary, { parse_mode: 'Markdown', reply_markup: keyboard });
 
             } catch (error) {
                 console.error(error);
@@ -223,6 +279,31 @@ export function setupHandlers(bot: Bot<MyContext>) {
     });
 
     // Handle callbacks
+
+    // Housing Type Selection Callbacks
+    bot.callbackQuery(['type_appart', 'type_coloc', 'type_all'], async (ctx) => {
+        if (ctx.session.step === 'ONBOARDING_WAITING_TYPE_LOGEMENT' && ctx.session.tempCriteria) {
+
+            // Set the standardized type_logement based on selection
+            let selectedTypeLabel = '';
+            if (ctx.callbackQuery.data === 'type_appart') {
+                ctx.session.tempCriteria.criteres_stricts.type_logement = ['appartement', 'studio', 'maison', 'duplex', 'loft'];
+                selectedTypeLabel = '🏢 Appartement entier';
+            } else if (ctx.callbackQuery.data === 'type_coloc') {
+                ctx.session.tempCriteria.criteres_stricts.type_logement = ['colocation', 'chambre', 'chambre partagée'];
+                selectedTypeLabel = '🛏️ Colocation / Chambre';
+            } else {
+                // All types
+                ctx.session.tempCriteria.criteres_stricts.type_logement = ['appartement', 'studio', 'maison', 'colocation', 'chambre', 'duplex', 'loft'];
+                selectedTypeLabel = '🤷‍♂️ Les deux';
+            }
+
+            // Edit previous message to show confirmation
+            await ctx.editMessageText(`🏡 Type de logement sélectionné : **${selectedTypeLabel}**`, { parse_mode: 'Markdown' });
+
+            await processLocationValidation(ctx, true);
+        }
+    });
 
     // Location Validation Callbacks
     bot.callbackQuery(['conf_loc_all', 'conf_loc_strict'], async (ctx) => {
@@ -280,7 +361,11 @@ export function setupHandlers(bot: Bot<MyContext>) {
             ctx.session.conversationHistory = undefined;
             ctx.session.existingCriteria = undefined;
 
-            await ctx.editMessageText("✅ Critères enregistrés ! Je commence à chercher pour toi. 🚀");
+            await ctx.editMessageText("✅ Critères enregistrés ! Je cherche si des annonces récentes pourraient correspondre... 🚀");
+
+            // Trigger catchup asynchronously
+            catchupService.runCatchup(ctx.from.id).catch(console.error);
+
             await ctx.answerCallbackQuery();
         }
     });

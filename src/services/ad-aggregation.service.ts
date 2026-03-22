@@ -101,6 +101,34 @@ export class AdAggregationService {
     }
 
     /**
+     * Fetch recent ads specifically for a "catch-up" when a user updates criteria.
+     * Does NOT affect the `lastAgencyCreatedAt` cursor used for background polling.
+     */
+    async getRecentAdsForCatchup(hours: number = 48): Promise<AdContext[]> {
+        const now = new Date();
+
+        // Facebook ads
+        const fbAds = await this.fbRepo.getRecentAds(hours);
+
+        // Agency ads
+        const cutoff = new Date(now.getTime() - hours * 60 * 60 * 1000).toISOString();
+        const agencyAds = await this.agencyRepo.getAdsSince(cutoff);
+
+        const contexts: AdContext[] = [];
+
+        for (const ad of fbAds) {
+            contexts.push({ source: 'facebook', scoringAd: ad, facebookAd: ad });
+        }
+
+        for (const ad of agencyAds) {
+            const scoringAd = this.mapAgencyToScoringAd(ad);
+            contexts.push({ source: 'agency', scoringAd, agencyAd: ad });
+        }
+
+        return contexts;
+    }
+
+    /**
      * Map a Agency row to the existing `Ad` shape used by the scoring logic.
      * Only the fields used by `ScoringService` and `LocationRepository`
      * are filled; the rest is left null/undefined.

@@ -146,10 +146,9 @@ export class ScoringService {
                     strictMatches.push('Type');
                     checks.push(this.createCheck('Type', true, true, 15, 15, `"${ad.type_logement}" correspond à [${stricts.type_logement.join(', ')}]`));
                 } else {
-                    // TMP: Don't fail if type doesn't match
-                    // strictFail = true;
+                    strictFail = true;
                     checks.push(this.createCheck('Type', false, true, 0, 15, `"${ad.type_logement}" ne correspond pas à [${stricts.type_logement.join(', ')}]`));
-                    // rejectionReasons.push('Type de logement non correspondant');
+                    rejectionReasons.push(`Type de logement non correspondant ("${ad.type_logement}")`);
                 }
             } else {
                 // If type is not available, give benefit of doubt

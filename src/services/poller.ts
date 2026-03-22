@@ -135,4 +135,60 @@ export class PollingService {
             console.error(`Failed to send alert to ${userId}:`, error);
         }
     }
+
+    /**
+     * Executes a one-off scan against the last 48h of ads for a specific user,
+     * immediately after they update their criteria.
+     */
+    async runCatchup(userTelegramId: number) {
+        const user = await this.userRepo.getUser(userTelegramId);
+        const criteria = await this.userRepo.getCriteria(userTelegramId);
+        if (!user || !criteria) return;
+
+        console.log(`Running criteria catchup for user ${userTelegramId}...`);
+
+        const adContexts = await this.adAggregationService.getRecentAdsForCatchup(48);
+        console.log(`Catchup fetched ${adContexts.length} recent ads.`);
+
+        const validMatches = [];
+
+        for (const ctx of adContexts) {
+            const scoringAd = ctx.scoringAd;
+            const adId = ctx.source === 'facebook' ? ctx.facebookAd!.id : ctx.agencyAd!.id;
+
+            const alreadySent = await this.alertRepo.hasAlertBeenSent(user.telegram_id, adId, ctx.source);
+            if (alreadySent) continue;
+
+            const scoreResult = this.scoringService.calculateScore(scoringAd, criteria);
+
+            // We use the same matching threshold as the main loop (> 0 meaning strict criteria met)
+            if (scoreResult.score_total > 0) {
+                validMatches.push({ ctx, scoreResult });
+            }
+        }
+
+        // Sort by score descending to get the best matches first
+        validMatches.sort((a, b) => b.scoreResult.score_total - a.scoreResult.score_total);
+
+        // Send top 5 to avoid spam
+        const matchesToSend = validMatches.slice(0, 5);
+
+        if (matchesToSend.length > 0) {
+            await bot.api.sendMessage(
+                userTelegramId,
+                `🚀 **Rattrapage**\nJ'ai trouvé ${validMatches.length} annonce(s) récente(s) qui correspondent à ta recherche ! Voici les ${matchesToSend.length} meilleures :`,
+                { parse_mode: 'Markdown' }
+            );
+
+            for (const match of matchesToSend) {
+                await this.sendAlert(userTelegramId, match.ctx, match.scoreResult);
+            }
+        } else {
+            await bot.api.sendMessage(
+                userTelegramId,
+                `🔍 J'ai regardé dans les annonces des dernières 48h, mais rien ne correspond à ta nouvelle recherche. Je garde l'œil ouvert !`,
+                { parse_mode: 'Markdown' }
+            );
+        }
+    }
 }
