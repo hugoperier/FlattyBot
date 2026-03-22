@@ -6,6 +6,7 @@ import { AlertFormatterService } from './alert-formatter.service';
 import { bot } from '../bot';
 import { AdWithPost, User, UserCriteria } from '../types/database';
 import { AdAggregationService, AdContext } from './ad-aggregation.service';
+import { INACTIVITY_TIMEOUT_MINUTES } from '../config/supabase';
 
 export class PollingService {
     private adRepo: AdRepository;
@@ -26,6 +27,22 @@ export class PollingService {
         console.log(`Starting polling service (interval: ${intervalMs}ms)...`);
         this.poll(); // Run immediately
         setInterval(() => this.poll(), intervalMs);
+
+        // Inactivity check: run every hour
+        const inactivityIntervalMs = 60 * 60 * 1000;
+        this.checkInactiveUsers(); // Run immediately on startup
+        setInterval(() => this.checkInactiveUsers(), inactivityIntervalMs);
+    }
+
+    private async checkInactiveUsers() {
+        try {
+            const count = await this.userRepo.deactivateInactiveUsers(INACTIVITY_TIMEOUT_MINUTES);
+            if (count > 0) {
+                console.log(`[Inactivity] ${count} user(s) deactivated and notified.`);
+            }
+        } catch (error) {
+            console.error('[Inactivity] Error running inactivity check:', error);
+        }
     }
 
     private async poll() {

@@ -1,5 +1,7 @@
 import { supabase } from '../config/supabase';
 import { User, UserCriteria } from '../types/database';
+import { bot } from '../bot';
+import { InlineKeyboard } from 'grammy';
 
 export class UserRepository {
     async createUser(userData: {
@@ -52,9 +54,13 @@ export class UserRepository {
     }
 
     async updateLastInteraction(telegramId: number) {
+        // Also restore is_active in case the user was auto-deactivated for inactivity
         await supabase
             .from('users')
-            .update({ last_interaction: new Date().toISOString() })
+            .update({
+                last_interaction: new Date().toISOString(),
+                is_active: true
+            })
             .eq('telegram_id', telegramId);
     }
 
@@ -130,6 +136,70 @@ export class UserRepository {
             return [];
         }
         return data || [];
+    }
+
+    /**
+     * Marks as inactive all users whose last_interaction is older than
+     * thresholdMinutes, then sends each of them a Telegram notification
+     * (skipping users who are already paused, since they opted out voluntarily).
+     *
+     * Returns the number of users that were deactivated.
+     */
+    async deactivateInactiveUsers(thresholdMinutes: number): Promise<number> {
+        const cutoff = new Date(Date.now() - thresholdMinutes * 60 * 1000).toISOString();
+
+        // Fetch users to deactivate: active, not paused, and not recently interacted
+        const { data: staleUsers, error } = await supabase
+            .from('users')
+            .select('telegram_id, is_paused')
+            .eq('is_active', true)
+            .eq('onboarding_completed', true)
+            .lt('last_interaction', cutoff);
+
+        if (error) {
+            console.error('[Inactivity] Error fetching stale users:', error);
+            return 0;
+        }
+
+        if (!staleUsers || staleUsers.length === 0) return 0;
+
+        const telegramIds = staleUsers.map((u) => u.telegram_id);
+
+        // Bulk deactivation
+        const { error: updateError } = await supabase
+            .from('users')
+            .update({ is_active: false })
+            .in('telegram_id', telegramIds);
+
+        if (updateError) {
+            console.error('[Inactivity] Error deactivating users:', updateError);
+            return 0;
+        }
+
+        console.log(`[Inactivity] Deactivated ${telegramIds.length} user(s) for inactivity.`);
+
+        // Notify each user — skip paused ones (they opted out voluntarily)
+        for (const user of staleUsers) {
+            if (user.is_paused) continue;
+
+            try {
+                const keyboard = new InlineKeyboard()
+                    .text('🔄 Réactiver mes alertes', 'reactivate_alerts').row()
+                    .text('📋 Voir le menu', 'back_to_menu');
+
+                await bot.api.sendMessage(
+                    user.telegram_id,
+                    '😴 *Tes alertes ont été suspendues*\n\n' +
+                    'Tu ne t\'es pas connecté depuis un moment, alors j\'ai mis tes alertes en veille pour ne pas te déranger.\n\n' +
+                    'Appuie sur le bouton ci-dessous pour les réactiver ! 👇',
+                    { parse_mode: 'Markdown', reply_markup: keyboard }
+                );
+            } catch (sendError) {
+                console.error(`[Inactivity] Failed to notify user ${user.telegram_id}:`, sendError);
+            }
+        }
+
+        return telegramIds.length;
     }
 }
 

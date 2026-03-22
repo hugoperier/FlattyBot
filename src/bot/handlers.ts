@@ -201,13 +201,33 @@ export function setupHandlers(bot: Bot<MyContext>) {
 
     // /menu
     bot.command('menu', async (ctx) => {
+        if (!ctx.from?.id) return;
+
+        const user = await userRepository.getUser(ctx.from.id);
+
+        // If user was auto-deactivated for inactivity, reactivate them silently
+        // (they're clearly back — no need to force them through a button)
+        if (user && !user.is_active) {
+            await userRepository.updateLastInteraction(ctx.from.id);
+        }
+
+        const isInactive = user && !user.is_active;
+        const isPaused   = user?.is_paused ?? false;
+
+        let menuText = "🏠 *Menu Principal*";
+        if (isInactive) {
+            menuText = "⚠️ *Tes alertes étaient en veille*\nJe les ai réactivées automatiquement. 🎉\n\n🏠 *Menu Principal*";
+        } else if (isPaused) {
+            menuText = "⏸️ *Tes alertes sont en pause*\n\n🏠 *Menu Principal*";
+        }
+
         const keyboard = new InlineKeyboard()
             .text("📋 Mes critères", "view_criteria")
             .text("🔔 Mes alertes", "view_alerts").row()
-            .text("⏸️ Pause", "toggle_pause")
+            .text(isPaused ? "▶️ Reprendre" : "⏸️ Pause", "toggle_pause")
             .text("❓ Aide", "help");
 
-        await ctx.reply("Menu Principal", { reply_markup: keyboard });
+        await ctx.reply(menuText, { parse_mode: 'Markdown', reply_markup: keyboard });
     });
 
     // Handle text messages
@@ -501,6 +521,22 @@ export function setupHandlers(bot: Bot<MyContext>) {
         await ctx.answerCallbackQuery();
     });
 
+    // Reactivate button sent in the inactivity notification message
+    bot.callbackQuery('reactivate_alerts', async (ctx) => {
+        if (!ctx.from?.id) return;
+
+        // Restore is_active + refresh last_interaction
+        await userRepository.updateLastInteraction(ctx.from.id);
+
+        await ctx.editMessageText(
+            "✅ *Tes alertes sont de nouveau actives !*\n\n" +
+            "Je reprends ma veille et te préviendrai dès qu'une annonce correspondant à tes critères sera publiée. 🔔\n\n" +
+            "💡 Tu peux aussi accéder au menu complet avec /menu.",
+            { parse_mode: 'Markdown' }
+        );
+        await ctx.answerCallbackQuery("Alertes réactivées ! 🎉");
+    });
+
     // === HELP SYSTEM ===
 
     // Main help callback - contextual based on user status
@@ -701,13 +737,22 @@ export function setupHandlers(bot: Bot<MyContext>) {
 
     // Helper callback: back to main menu
     bot.callbackQuery('back_to_menu', async (ctx) => {
+        if (!ctx.from?.id) return;
+
+        const user = await userRepository.getUser(ctx.from.id);
+        if (user && !user.is_active) {
+            await userRepository.updateLastInteraction(ctx.from.id);
+        }
+
+        const isPaused = user?.is_paused ?? false;
+
         const keyboard = new InlineKeyboard()
             .text("📋 Mes critères", "view_criteria")
             .text("🔔 Mes alertes", "view_alerts").row()
-            .text("⏸️ Pause", "toggle_pause")
+            .text(isPaused ? "▶️ Reprendre" : "⏸️ Pause", "toggle_pause")
             .text("❓ Aide", "help");
 
-        await ctx.editMessageText("Menu Principal", { reply_markup: keyboard });
+        await ctx.editMessageText("🏠 *Menu Principal*", { parse_mode: 'Markdown', reply_markup: keyboard });
         await ctx.answerCallbackQuery();
     });
 
