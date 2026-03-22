@@ -1,10 +1,10 @@
 import { supabase } from '../config/supabase';
 
 /**
- * Raw shape of a row in flatscanner.mksa_annonces (or <dbSchema>.mksa_annonces).
- * We only model the fields we actually use in the bot.
+ * Raw shape of a row in <dbSchema>.annonces.
+ * Models the fields used by the bot for agency (régie) listings.
  */
-export interface MksaAnnonce {
+export interface AgencyAd {
     id: string; // UUID
     title: string | null;
     monthly_gross_price: number | null;
@@ -35,30 +35,30 @@ export interface MksaAnnonce {
     sale_price: number | null;
     is_user_listing: boolean | null;
     regie: string | null;
+    source_id: string | null;
 }
 
-export class MksaAdRepository {
+export class AgencyAdRepository {
     /**
-     * Fetch MKSA ads that have been created after the given ISO timestamp.
+     * Fetch agency ads created after the given ISO timestamp.
      *
      * This is intentionally "since last seen" based to avoid spamming users
-     * with the même annonces à chaque cycle de polling, without introducing
+     * with the same listings on every polling cycle, without introducing
      * new DB tables for per-user tracking.
      */
-    async getAdsSince(createdAfterIso: string): Promise<MksaAnnonce[]> {
+    async getAdsSince(createdAfterIso: string): Promise<AgencyAd[]> {
         const { data, error } = await supabase
-            .from('mksa_annonces')
+            .from('annonces')
             .select('*')
             .eq('transaction_type', 'rental')
             .gt('created_at', createdAfterIso)
             .order('created_at', { ascending: true });
 
         if (error) {
-            console.error('Error fetching MKSA ads:', error);
+            console.error('Error fetching agency ads:', error);
             return [];
         }
 
-        return (data as MksaAnnonce[]) || [];
+        return (data as AgencyAd[]) || [];
     }
 }
-

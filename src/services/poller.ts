@@ -31,7 +31,7 @@ export class PollingService {
     private async poll() {
         try {
             console.log('Polling for new ads...');
-            const adContexts = await this.adAggregationService.getAdsForPolling(48); // Last 48h for FB, incremental for MKSA
+            const adContexts = await this.adAggregationService.getAdsForPolling(48); // Last 48h for FB, incremental for Agency
             const users = await this.userRepo.getAllActiveUsers();
 
             console.log(`Found ${adContexts.length} ads (all sources) and ${users.length} active users.`);
@@ -50,7 +50,7 @@ export class PollingService {
 
         for (const ctx of adContexts) {
             const scoringAd = ctx.scoringAd;
-            const adId = ctx.source === 'facebook' ? ctx.facebookAd!.id : ctx.mksaAd!.id;
+            const adId = ctx.source === 'facebook' ? ctx.facebookAd!.id : ctx.agencyAd!.id;
 
             // De-duplication for all sources
             const alreadySent = await this.alertRepo.hasAlertBeenSent(user.telegram_id, adId, ctx.source);
@@ -98,11 +98,11 @@ export class PollingService {
                 }
 
                 console.log(`Alert sent to user ${userId} for Facebook ad ${ad.id}`);
-            } else if (ctx.source === 'mksa' && ctx.mksaAd) {
-                const ad = ctx.mksaAd;
+            } else if (ctx.source === 'agency' && ctx.agencyAd) {
+                const ad = ctx.agencyAd;
 
-                const message = formatter.formatMksaAlertMessage(ad, ctx.scoringAd, score);
-                const imageUrl = formatter.getMksaImageUrl(ad);
+                const message = formatter.formatAgencyAlertMessage(ad, ctx.scoringAd, score);
+                const imageUrl = formatter.getAgencyImageUrl(ad);
 
                 if (imageUrl) {
                     await bot.api.sendPhoto(userId, imageUrl, {
@@ -115,13 +115,13 @@ export class PollingService {
                     });
                 }
 
-                console.log(`Alert sent to user ${userId} for MKSA ad ${ad.id}`);
+                console.log(`Alert sent to user ${userId} for Agency ad ${ad.id}`);
             }
 
             // Save alert for all sources
             await this.alertRepo.saveAlert({
                 user_id: userId,
-                annonce_id: ctx.source === 'facebook' ? ctx.facebookAd!.id : ctx.mksaAd!.id,
+                annonce_id: ctx.source === 'facebook' ? ctx.facebookAd!.id : ctx.agencyAd!.id,
                 source: ctx.source,
                 score_total: score.score_total,
                 score_criteres_stricts: score.score_criteres_stricts,
