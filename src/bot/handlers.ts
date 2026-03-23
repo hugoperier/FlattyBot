@@ -430,7 +430,11 @@ export function setupHandlers(bot: Bot<MyContext>) {
                 confiance: criteria.confiance_extraction,
                 resume_humain: criteria.resume_humain
             });
-            await ctx.reply(formatted, { parse_mode: 'Markdown' });
+
+            const keyboard = new InlineKeyboard()
+                .text("✏️ Modifier mes critères", "start_onboarding");
+
+            await ctx.reply(formatted, { parse_mode: 'Markdown', reply_markup: keyboard });
         } else {
             await ctx.reply("Tu n'as pas encore défini de critères. Fais /start !");
         }
