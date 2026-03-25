@@ -3,7 +3,7 @@
 <img src="https://img.shields.io/badge/Telegram-Bot-26A5E4?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram Bot"/>
 <img src="https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js"/>
 <img src="https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase"/>
-<img src="https://img.shields.io/badge/OpenAI-GPT--4o_Nano-412991?style=for-the-badge&logo=openai&logoColor=white" alt="OpenAI"/>
+<img src="https://img.shields.io/badge/OpenAI-GPT--5.4_Nano-412991?style=for-the-badge&logo=openai&logoColor=white" alt="OpenAI"/>
 
 # 🏠 FlattyBot
 
