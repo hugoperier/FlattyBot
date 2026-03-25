@@ -1,60 +1,88 @@
-# FlattyBot 🏠
+<div align="center">
 
-FlattyBot est un bot Telegram intelligent qui aide les utilisateurs à trouver des appartements à Genève. Il utilise l'IA (OpenAI GPT-5) pour comprendre les besoins des utilisateurs et un système de scoring pour envoyer des alertes personnalisées en temps réel.
+<img src="https://img.shields.io/badge/Telegram-Bot-26A5E4?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram Bot"/>
+<img src="https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js"/>
+<img src="https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase"/>
+<img src="https://img.shields.io/badge/OpenAI-GPT--4o_Nano-412991?style=for-the-badge&logo=openai&logoColor=white" alt="OpenAI"/>
 
-## Fonctionnalités
+# 🏠 FlattyBot
+
+**Le bot Telegram intelligent pour trouver votre appartement à Genève — en temps réel.**
+
+FlattyBot est un bot Telegram intelligent de recherche d'appartements à Genève. Il utilise l'IA (**OpenAI GPT-5.4 Nano**) pour comprendre les besoins des utilisateurs et un moteur de localisation avancé pour envoyer des alertes ultra-pertinentes en temps réel.
+
+<a href="https://t.me/FlatScout1_bot?start=gh">
+  <img src="https://img.shields.io/badge/🚀_Essayer_FlattyBot-Telegram-26A5E4?style=for-the-badge" alt="Try FlattyBot on Telegram"/>
+</a>
+
+</div>
+
+## 🚀 Fonctionnalités Clés
 
 - **Onboarding Conversationnel** : Décrivez votre recherche en langage naturel.
-- **Extraction Intelligente** : Le bot identifie vos critères stricts (budget, zone, pièces) et de confort (balcon, calme, etc.).
-- **Scoring & Matching** : Chaque annonce reçoit un score de pertinence.
-- **Alertes Temps Réel** : Recevez les meilleures offres moins de 5 minutes après leur publication.
-- **Gestion Facile** : Mettez en pause, reprenez ou modifiez vos critères via le menu.
+- **Support Multi-Source** : Agrégation des annonces issues de **Facebook** (via Marketplace) et des **Régies Immobilières** genevoises.
+- **Filtrage Intelligent** : Distinction automatique entre **Appartements** entiers et **Colocations**.
+- **Moteur de Localisation G-Loc** : Reconnaissance naturelle des quartiers et communes de Genève (Plainpalais, Cornavin, Eaux-Vives, etc.) via un graphe de proximité.
+- **Scoring & Matching** : Chaque annonce reçoit un score détaillé basé sur vos critères stricts (budget, pièces) et de confort.
+- **Gestion de l'Inactivité** : Suspension automatique des alertes après 2 semaines d'inactivité.
 
-## Prérequis
+## 🏗️ Architecture
 
+- `src/bot` : Interface Telegram (utilisant [Grammy](https://grammy.dev/)).
+- `src/services` :
+  - **Scoring** : Algorithme de matching et gestion du confort.
+  - **OpenAI** : Extraction structurée avec GPT-5.4 Nano.
+  - **Polling** : Surveillance des nouvelles annonces Multi-Source.
+- `src/repositories` : Couche d'accès aux données Supabase (Annonces, Agences, Users).
+- `src/data` : Graphe des quartiers (`proximity.json`) et mapping des localisations.
+
+## 🛠️ Installation & Configuration
+
+### Prérequis
 - Node.js 18+
-- Compte Supabase (avec les tables `fb_annonces_location` et `facebook_posts`)
-- Clé API OpenAI
-- Token Bot Telegram
-- ID Telegram de l'administrateur
+- Instance Supabase (Schéma `flatscanner` recommandé)
+- Clés API : OpenAI, Telegram Bot Token.
 
-## Installation
+### 1. Setup
+```bash
+git clone https://github.com/hugoperier/FlattyBot.git
+cd FlattyBot
+npm install
+```
 
-1. Cloner le repo
-2. Installer les dépendances :
-   ```bash
-   npm install
-   ```
-3. Configurer les variables d'environnement :
-   Copiez `.env.template` vers `.env` et remplissez les valeurs.
-   ```bash
-   cp .env.template .env
-   ```
-4. Initialiser la base de données :
-   Exécutez le script SQL `migrations/001_initial_schema.sql` dans votre dashboard Supabase.
+### 2. Variables d'environnement
+Copiez `.env.template` vers `.env.development` ou `.env.production` selon votre contexte.
+```bash
+cp .env.template .env.development
+```
 
-## Démarrage
+### 3. Schéma de base de données
+1. Exécutez `migrations/000_create_dev_schema.sql` pour initialiser le schéma `flatscanner_dev`.
+2. Appliquez les migrations successives (`001`, `002`, etc.) pour les fonctionnalités additionnelles.
 
-Pour le développement :
+## 💻 Utilisation
+
+### Développement
+Lancer le bot en mode watch avec monitoring :
 ```bash
 npm run dev
 ```
 
-Pour la production :
+### Évaluation & Audit (CLI)
+Le bot inclut un outil robuste pour tester et auditer la qualité des extractions et du scoring :
 ```bash
-npm run build
-npm start
+# Lancer le pipeline d'évaluation sur le dataset de test
+npm run eval
 ```
 
-## Architecture
-
-- `src/bot` : Gestion des interactions Telegram (Grammy).
-- `src/services` : Logique métier (OpenAI, Scoring, Polling).
-- `src/repositories` : Accès aux données (Supabase).
-
-## Tests
-
-Pour lancer les tests unitaires (Scoring & LLM) :
+### Tests
 ```bash
 npm test
 ```
+
+## 🔐 Sécurité & Maintenance
+- **Autorisation** : Système de validation d'accès (Admin whitelist).
+- **Inactivité** : Les utilisateurs inactifs sont notifiés avant désactivation pour libérer les ressources de polling.
+
+## ⚠️ Limitations & Scope
+FlattyBot est un moteur de matching et d'alertes. Il **ne contient pas** les scrapers (Facebook, Marketplace, Régies, etc.). Le bot part du principe que la base de données est alimentée par des services tiers (scrapers périodiques). Son périmètre se limite exclusivement à l'analyse (OpenAI), le scoring et la distribution intelligente des alertes.
