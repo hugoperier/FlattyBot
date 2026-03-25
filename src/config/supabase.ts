@@ -19,3 +19,10 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
 });
 
 export { dbSchema };
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Inactivity settings
+// After this many minutes without any interaction, a user is marked inactive
+// and receives a notification. Change this value to adjust the threshold.
+// ──────────────────────────────────────────────────────────────────────────────
+export const INACTIVITY_TIMEOUT_MINUTES = 14 * 24 * 60; // 2 weeks

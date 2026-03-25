@@ -148,6 +148,12 @@
       "les grottes": [
         "Grottes"
       ],
+      "les paquis": [
+        "Pâquis"
+      ],
+      "les pâquis": [
+        "Pâquis"
+      ],
       "paquis": [
         "Pâquis"
       ],
@@ -243,6 +249,31 @@
         "Grottes"
       ],
       "cornavin": [
+        "Pâquis",
+        "Servette",
+        "Grottes"
+      ],
+      "alentours de cornavin": [
+        "Pâquis",
+        "Servette",
+        "Grottes"
+      ],
+      "aux alentours de cornavin": [
+        "Pâquis",
+        "Servette",
+        "Grottes"
+      ],
+      "proche de cornavin": [
+        "Pâquis",
+        "Servette",
+        "Grottes"
+      ],
+      "proche cornavin": [
+        "Pâquis",
+        "Servette",
+        "Grottes"
+      ],
+      "environs de cornavin": [
         "Pâquis",
         "Servette",
         "Grottes"

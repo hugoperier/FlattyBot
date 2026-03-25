@@ -28,7 +28,13 @@ bot.use(async (ctx, next) => {
 
         if (!user) {
             // Create new user with pending authorization
-            const newUser = await userRepository.createUser(ctx.from.id);
+            const newUser = await userRepository.createUser({
+                telegram_id: ctx.from.id,
+                first_name: ctx.from.first_name,
+                last_name: ctx.from.last_name,
+                username: ctx.from.username,
+                language_code: ctx.from.language_code
+            });
 
             if (newUser && ADMIN_TELEGRAM_ID) {
                 // Send notification to admin
@@ -55,8 +61,14 @@ bot.use(async (ctx, next) => {
                 }
             }
         } else {
-            // Update last interaction for existing users
-            await userRepository.updateLastInteraction(ctx.from.id);
+            // Update user info and last interaction for existing users
+            await userRepository.createUser({
+                telegram_id: ctx.from.id,
+                first_name: ctx.from.first_name,
+                last_name: ctx.from.last_name,
+                username: ctx.from.username,
+                language_code: ctx.from.language_code
+            });
         }
     }
     await next();

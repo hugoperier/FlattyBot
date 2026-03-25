@@ -1,7 +1,7 @@
 import { supabase } from '../config/supabase';
 import { Ad, AdWithPost } from '../types/database';
 import { ScoreResult } from './scoring.service';
-import { MksaAnnonce } from '../repositories/mksa-ad.repository';
+import { AgencyAd } from '../repositories/agency-ad.repository';
 
 export class AlertFormatterService {
     constructor() {
@@ -104,9 +104,9 @@ export class AlertFormatterService {
     }
 
     /**
-     * For MKSA ads, we use the first external image URL if available.
+     * For Agency ads, we use the first external image URL if available.
      */
-    getMksaImageUrl(ad: MksaAnnonce): string | null {
+    getAgencyImageUrl(ad: AgencyAd): string | null {
         if (!ad.image_urls) return null;
 
         // Supabase JSONB typically returns an array already
@@ -307,10 +307,10 @@ export class AlertFormatterService {
     }
 
     /**
-     * Format the alert message for a MKSA (régie) ad.
-     * Uses both the raw MKSA row and the adapted scoring ad.
+     * Format the alert message for a Agency (régie) ad.
+     * Uses both the raw Agency row and the adapted scoring ad.
      */
-    formatMksaAlertMessage(raw: MksaAnnonce, scoringAd: Ad, score: ScoreResult): string {
+    formatAgencyAlertMessage(raw: AgencyAd, scoringAd: Ad, score: ScoreResult): string {
         const isPremium = score.score_total >= 120;
         let msg = '';
 

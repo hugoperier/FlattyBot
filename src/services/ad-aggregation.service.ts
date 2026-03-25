@@ -1,8 +1,8 @@
 import { Ad, AdWithPost } from '../types/database';
 import { AdRepository } from '../repositories/ad.repository';
-import { MksaAdRepository, MksaAnnonce } from '../repositories/mksa-ad.repository';
+import { AgencyAdRepository, AgencyAd } from '../repositories/agency-ad.repository';
 
-export type AdSource = 'facebook' | 'mksa';
+export type AdSource = 'facebook' | 'agency';
 
 /**
  * Minimal shape passed to the scoring engine.
@@ -15,7 +15,7 @@ export interface AdContext {
     source: AdSource;
     scoringAd: ScoringAd;
     facebookAd?: AdWithPost;
-    mksaAd?: MksaAnnonce;
+    agencyAd?: AgencyAd;
 }
 
 /**
@@ -26,24 +26,24 @@ export interface AdContext {
  *   - We keep the existing 48h sliding window and rely on `sent_alerts`
  *     for per-user de-duplication.
  *
- * For MKSA (régies):
+ * For Agency (régies):
  *   - We only fetch ads created strictly after the last seen `created_at`
  *     timestamp (per process). This ensures each régie ad is processed
  *     une seule fois par le bot, sans introduire de nouvelle table.
  */
 export class AdAggregationService {
     private fbRepo: AdRepository;
-    private mksaRepo: MksaAdRepository;
+    private agencyRepo: AgencyAdRepository;
 
     /**
-     * Last MKSA `created_at` we've seen (ISO string).
+     * Last Agency `created_at` we've seen (ISO string).
      * Used as a moving cursor to avoid reprocessing the same rows.
      */
-    private lastMksaCreatedAt: string | null = null;
+    private lastAgencyCreatedAt: string | null = null;
 
     constructor() {
         this.fbRepo = new AdRepository();
-        this.mksaRepo = new MksaAdRepository();
+        this.agencyRepo = new AgencyAdRepository();
     }
 
     /**
@@ -57,23 +57,23 @@ export class AdAggregationService {
         // 1. Facebook ads: keep existing behaviour (48h window)
         const fbAds = await this.fbRepo.getRecentAds(facebookHours);
 
-        // 2. MKSA ads: only new ones since lastMksaCreatedAt (or same initial window)
-        let mksaSinceIso: string;
-        if (this.lastMksaCreatedAt) {
-            mksaSinceIso = this.lastMksaCreatedAt;
+        // 2. Agency ads: only new ones since lastAgencyCreatedAt (or same initial window)
+        let agencySinceIso: string;
+        if (this.lastAgencyCreatedAt) {
+            agencySinceIso = this.lastAgencyCreatedAt;
         } else {
             const cutoff = new Date(now.getTime() - facebookHours * 60 * 60 * 1000 * 100).toISOString();
-            mksaSinceIso = cutoff;
+            agencySinceIso = cutoff;
         }
 
-        const mksaAds = await this.mksaRepo.getAdsSince(mksaSinceIso);
+        const agencyAds = await this.agencyRepo.getAdsSince(agencySinceIso);
 
-        if (mksaAds.length > 0) {
-            const latestCreatedAt = mksaAds.reduce((max, ad) => {
+        if (agencyAds.length > 0) {
+            const latestCreatedAt = agencyAds.reduce((max, ad) => {
                 return ad.created_at > max ? ad.created_at : max;
-            }, this.lastMksaCreatedAt || mksaAds[0].created_at);
+            }, this.lastAgencyCreatedAt || agencyAds[0].created_at);
 
-            this.lastMksaCreatedAt = latestCreatedAt;
+            this.lastAgencyCreatedAt = latestCreatedAt;
         }
 
         const contexts: AdContext[] = [];
@@ -87,13 +87,13 @@ export class AdAggregationService {
             });
         }
 
-        // MKSA: adapt to scoring shape
-        for (const ad of mksaAds) {
-            const scoringAd = this.mapMksaToScoringAd(ad);
+        // Agency: adapt to scoring shape
+        for (const ad of agencyAds) {
+            const scoringAd = this.mapAgencyToScoringAd(ad);
             contexts.push({
-                source: 'mksa',
+                source: 'agency',
                 scoringAd,
-                mksaAd: ad
+                agencyAd: ad
             });
         }
 
@@ -101,11 +101,39 @@ export class AdAggregationService {
     }
 
     /**
-     * Map a MKSA row to the existing `Ad` shape used by the scoring logic.
+     * Fetch recent ads specifically for a "catch-up" when a user updates criteria.
+     * Does NOT affect the `lastAgencyCreatedAt` cursor used for background polling.
+     */
+    async getRecentAdsForCatchup(hours: number = 48): Promise<AdContext[]> {
+        const now = new Date();
+
+        // Facebook ads
+        const fbAds = await this.fbRepo.getRecentAds(hours);
+
+        // Agency ads
+        const cutoff = new Date(now.getTime() - hours * 60 * 60 * 1000).toISOString();
+        const agencyAds = await this.agencyRepo.getAdsSince(cutoff);
+
+        const contexts: AdContext[] = [];
+
+        for (const ad of fbAds) {
+            contexts.push({ source: 'facebook', scoringAd: ad, facebookAd: ad });
+        }
+
+        for (const ad of agencyAds) {
+            const scoringAd = this.mapAgencyToScoringAd(ad);
+            contexts.push({ source: 'agency', scoringAd, agencyAd: ad });
+        }
+
+        return contexts;
+    }
+
+    /**
+     * Map a Agency row to the existing `Ad` shape used by the scoring logic.
      * Only the fields used by `ScoringService` and `LocationRepository`
      * are filled; the rest is left null/undefined.
      */
-    private mapMksaToScoringAd(ad: MksaAnnonce): ScoringAd {
+    private mapAgencyToScoringAd(ad: AgencyAd): ScoringAd {
         // Extract some location hints from the free-form address
         const rawAddress = ad.address || '';
         const ville = this.extractVilleFromAddress(rawAddress);
@@ -115,7 +143,7 @@ export class AdAggregationService {
 
         return {
             // `id` is not used by the scoring logic; keep a dummy numeric id
-            // Actual MKSA id reste disponible dans AdContext.mksaAd.id
+            // Actual Agency id reste disponible dans AdContext.agencyAd.id
             id: 0,
             facebook_post_id: '',
             adresse_complete: rawAddress || null,

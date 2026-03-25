@@ -1,7 +1,6 @@
 import { ExtractedCriteria } from '../services/openai.service';
 
 export function formatCriteriaSummary(criteria: ExtractedCriteria): string {
-    console.log('DEBUG: formatCriteriaSummary input:', JSON.stringify(criteria, null, 2));
     const stricts = criteria.criteres_stricts || {};
     const confort = criteria.criteres_confort || {};
 

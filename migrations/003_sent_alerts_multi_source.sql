@@ -1,5 +1,5 @@
--- Extend sent_alerts to support multiple ad sources (Facebook + MKSA)
--- Allows per-user deduplication for MKSA ads same as Facebook.
+-- Extend sent_alerts to support multiple ad sources (Facebook + Agency listings)
+-- Allows per-user deduplication for agency ads same as Facebook.
 --
 -- Schema: flatscanner_dev (dev). For prod (e.g. flatscanner), run the same
 -- statements with your schema name, or set search_path before running.
@@ -8,7 +8,7 @@
 ALTER TABLE flatscanner_dev.sent_alerts
     ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'facebook';
 
--- 2. Drop FK so annonce_id can store UUIDs from mksa_annonces too
+-- 2. Drop FK so annonce_id can store UUIDs from the annonce table too
 ALTER TABLE flatscanner_dev.sent_alerts
     DROP CONSTRAINT IF EXISTS sent_alerts_annonce_id_fkey;
 
