@@ -1,4 +1,5 @@
-import { Ad, UserCriteria } from '../types/database';
+import { Ad, AdWithPost, UserCriteria } from '../types/database';
+
 import { ExtractedCriteria } from './openai.service';
 import { LocationRepository } from '../repositories/LocationRepository';
 
@@ -34,8 +35,24 @@ export class ScoringService {
     }
 
 
-    calculateScore(ad: Ad, criteria: UserCriteria): ScoreResult {
-        const stricts = criteria.criteres_stricts as ExtractedCriteria['criteres_stricts'];
+    calculateScore(ad: Ad | AdWithPost, criteria: UserCriteria): ScoreResult {
+
+        // --- Normalization ---
+        const strictsRaw = criteria.criteres_stricts as ExtractedCriteria['criteres_stricts'];
+
+        // Normalize zones to canonicals
+        let normalizedZones: string[] = [];
+        if (strictsRaw.zones && strictsRaw.zones.length > 0) {
+            strictsRaw.zones.forEach(z => {
+                const results = this.locationRepository.findCanonical(z, true);
+                normalizedZones = [...normalizedZones, ...results];
+            });
+        }
+
+        const stricts = {
+            ...strictsRaw,
+            zones: Array.from(new Set(normalizedZones))
+        };
         const confort = criteria.criteres_confort as ExtractedCriteria['criteres_confort'];
 
         let scoreStricts = 0;
@@ -46,23 +63,40 @@ export class ScoringService {
         const checks: CriteriaCheck[] = [];
         const rejectionReasons: string[] = [];
 
+
         // --- Strict Criteria ---
         let strictFail = false;
 
         // 1. Zone (30 pts)
         if (stricts.zones && stricts.zones.length > 0) {
             // Determine if Geneva context for exclusive mappings
-            const isGeneve = ad.ville?.toLowerCase().includes('geneve')
+            const isGeneve = ad.ville?.toLowerCase().includes('geneve');
 
             // Resolve Ad location to canonicals
-            const resolvedLocations = this.locationRepository.resolveAdLocation(ad, isGeneve);
+            let resolvedLocations = this.locationRepository.resolveAdLocation(ad, isGeneve);
+
+            // Expert Fallback: If structured resolution failed, try the full address or text
+            if (resolvedLocations.length === 0) {
+                const searchString = (ad.adresse_complete || (ad as AdWithPost).facebook_posts?.input_data?.text || '').toLowerCase();
+                if (searchString) {
+
+                    const foundZones = new Set<string>();
+                    this.locationRepository.getCanonicalLocations().forEach(loc => {
+                        if (searchString.includes(loc.toLowerCase())) {
+                            foundZones.add(loc);
+                        }
+                    });
+                    resolvedLocations = Array.from(foundZones);
+                }
+            }
+
             const adRawLocation = `${ad.ville || ''} ${ad.quartier || ''} ${ad.code_postal || ''}`.trim();
 
             // Check intersection with user zones
-            // We assume user zones are already canonical (validated during onboarding)
             const zoneMatch = stricts.zones.some(userZone =>
                 resolvedLocations.includes(userZone)
             );
+
 
             if (zoneMatch) {
                 scoreStricts += 30;
@@ -81,28 +115,30 @@ export class ScoringService {
 
         // 2. Budget (30 pts)
         if (stricts.budget_max) {
-            if (ad.loyer_total && ad.loyer_total <= stricts.budget_max) {
+            const adPrice = ad.loyer_total || ad.loyer_mensuel;
+            if (adPrice && adPrice <= stricts.budget_max) {
                 scoreStricts += 30;
                 strictMatches.push('Budget');
-                checks.push(this.createCheck('Budget', true, true, 30, 30, `CHF ${ad.loyer_total} ≤ CHF ${stricts.budget_max}`));
+                checks.push(this.createCheck('Budget', true, true, 30, 30, `CHF ${adPrice} ≤ CHF ${stricts.budget_max}`));
 
                 // Badge: Prix exceptionnel
-                if (ad.loyer_total <= stricts.budget_max * 0.85) {
+                if (adPrice <= stricts.budget_max * 0.85) {
                     badges.push('💎 Prix exceptionnel');
                 }
-            } else if (!ad.loyer_total) {
+            } else if (!adPrice) {
                 // If price is not available, don't fail but don't award points
                 scoreStricts += 30; // Give benefit of doubt
                 checks.push(this.createCheck('Budget', true, true, 30, 30, 'Prix non disponible (accordé par défaut)'));
             } else {
                 strictFail = true;
-                checks.push(this.createCheck('Budget', false, true, 0, 30, `CHF ${ad.loyer_total} > CHF ${stricts.budget_max}`));
-                rejectionReasons.push(`Budget dépassé (CHF ${ad.loyer_total} > CHF ${stricts.budget_max})`);
+                checks.push(this.createCheck('Budget', false, true, 0, 30, `CHF ${adPrice} > CHF ${stricts.budget_max}`));
+                rejectionReasons.push(`Budget dépassé (CHF ${adPrice} > CHF ${stricts.budget_max})`);
             }
         } else {
             scoreStricts += 30;
             checks.push(this.createCheck('Budget', true, true, 30, 30, 'Aucun budget spécifié (accordé par défaut)'));
         }
+
 
         // 3. Nombre de pièces (25 pts)
         if (stricts.nombre_pieces_min || stricts.nombre_pieces_max) {

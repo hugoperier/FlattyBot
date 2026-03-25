@@ -2,6 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
 import { ScoringService } from '../../src/services/scoring.service';
+import { LocationRepository } from '../../src/repositories/LocationRepository';
+const locationRepo = new LocationRepository();
+
 
 const args = process.argv.slice(2);
 
@@ -157,6 +160,16 @@ function runScoringTest() {
             continue;
         }
 
+        // --- Expert Normalization for Eval ---
+        let normalizedZones: string[] = [];
+        if (criteriaExtraction.criteres_stricts.zones) {
+            criteriaExtraction.criteres_stricts.zones.forEach((z: string) => {
+                const results = locationRepo.findCanonical(z, true);
+                normalizedZones = [...normalizedZones, ...results];
+            });
+        }
+        criteriaExtraction.criteres_stricts.zones = Array.from(new Set(normalizedZones));
+
         const userCriteriaMock: any = {
             user_id: 1,
             criteres_stricts: criteriaExtraction.criteres_stricts,
@@ -164,6 +177,7 @@ function runScoringTest() {
             description_originale: entry.userdescription,
             resume_humain: criteriaExtraction.resume_humain
         };
+
 
         const scoredPairs: Array<{ ad: any, raw: any, scoreResult: any }> = [];
         let tp = 0; let fp = 0; let tn = 0; let fn = 0;
