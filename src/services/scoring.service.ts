@@ -70,7 +70,7 @@ export class ScoringService {
         // 1. Zone (30 pts)
         if (stricts.zones && stricts.zones.length > 0) {
             // Determine if Geneva context for exclusive mappings
-            const isGeneve = ad.ville?.toLowerCase().includes('geneve');
+            const isGeneve = ad.ville?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes('geneve');
 
             // Resolve Ad location to canonicals
             let resolvedLocations = this.locationRepository.resolveAdLocation(ad, isGeneve);
