@@ -61,29 +61,27 @@ export class PollingService {
         }
     }
 
+    private adKey(source: AdContext['source'], adId: string | number): string {
+        return `${source}:${adId}`;
+    }
+
     private async processUser(user: User, adContexts: AdContext[]) {
         const criteria = await this.userRepo.getCriteria(user.telegram_id);
         if (!criteria) return;
 
+        const sentKeys = await this.alertRepo.getSentAdKeys(user.telegram_id);
+
         for (const ctx of adContexts) {
-            const scoringAd = ctx.scoringAd;
             const adId = ctx.source === 'facebook' ? ctx.facebookAd!.id : ctx.agencyAd!.id;
+            const key = this.adKey(ctx.source, adId);
 
-            // De-duplication for all sources
-            const alreadySent = await this.alertRepo.hasAlertBeenSent(user.telegram_id, adId, ctx.source);
-            if (alreadySent) continue;
+            if (sentKeys.has(key)) continue;
 
-            // Calculate score
-            const scoreResult = this.scoringService.calculateScore(scoringAd, criteria);
-
-            // Thresholds
-            // If score > 0 (meaning strict criteria met), we consider sending
-            // But maybe we want a minimum score? The prompt says:
-            // "Critères stricts : doivent TOUS être respectés sinon score = 0 (pas d'alerte)"
-            // So if score > 0, it's a match.
+            const scoreResult = this.scoringService.calculateScore(ctx.scoringAd, criteria);
 
             if (scoreResult.score_total > 0) {
                 await this.sendAlert(user.telegram_id, ctx, scoreResult);
+                sentKeys.add(key);
             }
         }
     }
@@ -167,16 +165,15 @@ export class PollingService {
         const adContexts = await this.adAggregationService.getRecentAdsForCatchup(48);
         console.log(`Catchup fetched ${adContexts.length} recent ads.`);
 
+        const sentKeys = await this.alertRepo.getSentAdKeys(userTelegramId);
         const validMatches = [];
 
         for (const ctx of adContexts) {
-            const scoringAd = ctx.scoringAd;
             const adId = ctx.source === 'facebook' ? ctx.facebookAd!.id : ctx.agencyAd!.id;
 
-            const alreadySent = await this.alertRepo.hasAlertBeenSent(user.telegram_id, adId, ctx.source);
-            if (alreadySent) continue;
+            if (sentKeys.has(this.adKey(ctx.source, adId))) continue;
 
-            const scoreResult = this.scoringService.calculateScore(scoringAd, criteria);
+            const scoreResult = this.scoringService.calculateScore(ctx.scoringAd, criteria);
 
             // We use the same matching threshold as the main loop (> 0 meaning strict criteria met)
             if (scoreResult.score_total > 0) {

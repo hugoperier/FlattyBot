@@ -86,7 +86,6 @@ export class OpenAIService {
                     { role: "user", content: userContent }
                 ],
                 model: "gpt-5.4-nano",
-                // @ts-ignore
                 response_format: {
                     type: "json_schema",
                     json_schema: {
@@ -95,9 +94,7 @@ export class OpenAIService {
                         schema: CRITERIA_SCHEMA
                     }
                 },
-                // @ts-ignore
                 reasoning_effort: "medium",
-                // @ts-ignore
                 verbosity: "medium"
             });
 
