@@ -1,12 +1,9 @@
 import { Bot, session, InlineKeyboard } from 'grammy';
-import dotenv from 'dotenv';
 import { MyContext, SessionData } from './context';
 import { UserRepository } from '../repositories/user.repository';
 import { OpenAIService } from '../services/openai.service';
 import { setupHandlers } from './handlers';
 import { ADMIN_TELEGRAM_ID } from '../config/admin';
-
-dotenv.config();
 
 if (!process.env.TELEGRAM_BOT_TOKEN) {
     throw new Error('Missing TELEGRAM_BOT_TOKEN');

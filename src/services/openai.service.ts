@@ -1,8 +1,6 @@
 import OpenAI from 'openai';
-import dotenv from 'dotenv';
-import { CRITERIA_SCHEMA, SYSTEM_PROMPT, formatUserPrompt } from './openai.prompts';
-
-dotenv.config();
+import { CRITERIA_SCHEMA, SYSTEM_PROMPT, SYSTEM_PROMPT_EN, formatUserPrompt } from './openai.prompts';
+import { Lang } from '../i18n/strings';
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -27,62 +25,30 @@ export interface ExtractedCriteria {
         autres: string[];
     };
     criteres_manquants: string[];
+    question_followup: string | null;
     confiance: number;
     resume_humain: string;
 }
 
-/**
- * Options for contextual criteria extraction.
- * Allows the AI to understand iterative modifications and maintain conversation context.
- */
 export interface ExtractionOptions {
-    /**
-     * Recent conversation history to provide context for the current request.
-     * Limited to the last 5 messages to avoid overloading the prompt.
-     */
     conversationHistory?: Array<{ role: string; content: string }>;
-
-    /**
-     * Previously defined criteria, if any.
-     * Allows the AI to understand modifications vs. new criteria definition.
-     */
     existingCriteria?: ExtractedCriteria;
+    lang?: Lang;
 }
 
 export class OpenAIService {
-    /**
-     * Extracts user criteria from a natural language description.
-     * 
-     * This method supports contextual extraction by accepting:
-     * - Conversation history: to understand iterative refinements
-     * - Existing criteria: to detect modifications vs. new criteria
-     * 
-     * @param userDescription - Natural language description from the user
-     * @param options - Optional context for enhanced extraction
-     * @returns Extracted criteria with confidence score and human summary
-     * 
-     * @example
-     * // New user, no context
-     * await extractCriteria("Je cherche un 3 pièces à Carouge, max 2500 CHF");
-     * 
-     * @example
-     * // User modifying existing criteria
-     * await extractCriteria("je veux monter à 2800 CHF", {
-     *   existingCriteria: currentCriteria,
-     *   conversationHistory: sessionHistory
-     * });
-     */
     async extractCriteria(
         userDescription: string,
         options?: ExtractionOptions
     ): Promise<ExtractedCriteria> {
 
         const userContent = formatUserPrompt(userDescription, options);
+        const systemPrompt = options?.lang === 'en' ? SYSTEM_PROMPT_EN : SYSTEM_PROMPT;
 
         try {
             const completion = await openai.chat.completions.create({
                 messages: [
-                    { role: "system", content: SYSTEM_PROMPT },
+                    { role: "system", content: systemPrompt },
                     { role: "user", content: userContent }
                 ],
                 model: "gpt-5.4-nano",
