@@ -20,6 +20,7 @@ export interface SessionData {
         | 'ONBOARDING_WAITING_CONFIRMATION'
         | 'ONBOARDING_WAITING_MODIFICATION'
         | 'ONBOARDING_WAITING_LOCATION_VALIDATION'
+        | 'ONBOARDING_WAITING_LOCATION_CLARIFICATION'
         | 'ONBOARDING_WAITING_MARKET_DECISION';
     language?: Lang;
     extractionRounds?: number;
@@ -29,6 +30,9 @@ export interface SessionData {
     existingCriteria?: ExtractedCriteria;
     verifiedZones?: string[];
     suggestedZones?: string[];
+    skipBudgetAsk?: boolean;
+    skipPiecesAsk?: boolean;
+    skipAvailAsk?: boolean;
 }
 
 export type MyContext = Context & SessionFlavor<SessionData>;

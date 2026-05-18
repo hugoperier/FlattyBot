@@ -22,6 +22,14 @@ const STRINGS: Record<Lang, StringsMap> = {
         ask_missing_fallback: (fields: string) =>
             `Il me manque encore quelques infos pour affiner ta recherche :\n${fields}\n\nPeux-tu me préciser ça ?`,
         cancel_btn: '❌ Annuler',
+        q_budget: '💰 Quel est ton **budget maximum** par mois (en CHF) ?',
+        q_pieces: '🛏 Tu cherches **combien de pièces** minimum ?',
+        q_avail: '📅 **Pour quand** cherches-tu à emménager ?',
+        pieces_any: '🤷 Peu importe',
+        avail_asap: '🔥 Le plus tôt possible',
+        avail_1m: '📅 Dans 1 mois',
+        avail_2m: '🗓 Dans 2 mois',
+        avail_flexible: '🔍 Pas de contrainte',
 
         // Fallback (3 rounds)
         fallback_msg:
@@ -96,6 +104,14 @@ const STRINGS: Record<Lang, StringsMap> = {
         ask_missing_fallback: (fields: string) =>
             `I still need a few details:\n${fields}\n\nCould you clarify?`,
         cancel_btn: '❌ Cancel',
+        q_budget: '💰 What\'s your **maximum monthly budget** (in CHF)?',
+        q_pieces: '🛏 **How many rooms** are you looking for?',
+        q_avail: '📅 **When** do you want to move in?',
+        pieces_any: '🤷 No preference',
+        avail_asap: '🔥 As soon as possible',
+        avail_1m: '📅 In 1 month',
+        avail_2m: '🗓 In 2 months',
+        avail_flexible: '🔍 No constraint',
 
         // Fallback (3 rounds)
         fallback_msg:

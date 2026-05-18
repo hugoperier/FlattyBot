@@ -139,7 +139,27 @@ SELECT
 FROM flatscanner.fb_annonces_location
 ON CONFLICT (id) DO NOTHING;
 
--- 3. Verify counts
+-- 3. Clone annonces
+INSERT INTO flatscanner_dev.annonces (
+    id, title, monthly_gross_price, monthly_charges, monthly_net_price,
+    monthly_price, description, surface_m2, available_date, number_rooms,
+    address, car_park, created_at, source_url, image_urls, listing_type,
+    latitude, longitude, currency, transaction_type, balcony,
+    land_surface_m2, sale_price, is_user_listing, regie, source_id,
+    inserted_at, updated_at
+)
+SELECT 
+    id, title, monthly_gross_price, monthly_charges, monthly_net_price,
+    monthly_price, description, surface_m2, available_date, number_rooms,
+    address, car_park, created_at, source_url, image_urls, listing_type,
+    latitude, longitude, currency, transaction_type, balcony,
+    land_surface_m2, sale_price, is_user_listing, regie, source_id,
+    inserted_at, updated_at
+FROM flatscanner.annonces
+ON CONFLICT (id) DO NOTHING;
+
+
+-- 5. Verify counts
 SELECT 
     'facebook_posts' as table_name,
     (SELECT COUNT(*) FROM flatscanner.facebook_posts) as source_count,
@@ -148,4 +168,10 @@ UNION ALL
 SELECT 
     'fb_annonces_location',
     (SELECT COUNT(*) FROM flatscanner.fb_annonces_location),
-    (SELECT COUNT(*) FROM flatscanner_dev.fb_annonces_location);
+    (SELECT COUNT(*) FROM flatscanner_dev.fb_annonces_location)
+UNION ALL
+SELECT 
+    'annonces',
+    (SELECT COUNT(*) FROM flatscanner.annonces),
+    (SELECT COUNT(*) FROM flatscanner_dev.annonces)
+UNION ALL

@@ -10,6 +10,7 @@ import {
     enterLocationStep,
     runMarketCheck,
     runPreview,
+    proceedAfterQuickFill,
 } from './steps';
 
 function lang(ctx: MyContext) {
@@ -58,6 +59,16 @@ export function registerOnboardingHandlers(bot: Bot<MyContext>) {
         if (step === 'ONBOARDING_WAITING_MODIFICATION') {
             ctx.session.existingCriteria = ctx.session.tempCriteria;
             ctx.session.step = 'ONBOARDING_ASKING_MISSING';
+            await runExtractionRound(ctx, ctx.message.text);
+            return;
+        }
+
+        if (step === 'ONBOARDING_WAITING_LOCATION_CLARIFICATION') {
+            // Reset zones so OpenAI doesn't accumulate the previously unresolved zone descriptions
+            if (ctx.session.tempCriteria) {
+                ctx.session.tempCriteria.criteres_stricts.zones = [];
+            }
+            ctx.session.existingCriteria = ctx.session.tempCriteria;
             await runExtractionRound(ctx, ctx.message.text);
             return;
         }
@@ -121,6 +132,9 @@ export function registerOnboardingHandlers(bot: Bot<MyContext>) {
         ctx.session.extractionRounds = 0;
         ctx.session.tempCriteria = undefined;
         ctx.session.conversationHistory = [];
+        ctx.session.skipBudgetAsk = undefined;
+        ctx.session.skipPiecesAsk = undefined;
+        ctx.session.skipAvailAsk = undefined;
         await ctx.editMessageText(
             lang(ctx) === 'en' ? '🔄 Let\'s start over!' : '🔄 On recommence !'
         );
@@ -148,6 +162,64 @@ export function registerOnboardingHandlers(bot: Bot<MyContext>) {
         await runMarketCheck(ctx);
     });
 
+    // ── Quick-fill callbacks ────────────────────────────────────────────────
+
+    bot.callbackQuery(['qf_budget_1500', 'qf_budget_2000', 'qf_budget_2500', 'qf_budget_3000', 'qf_budget_3500'], async (ctx) => {
+        if (ctx.session.step !== 'ONBOARDING_ASKING_MISSING' || !ctx.session.tempCriteria) return;
+        const budgetMap: Record<string, number> = {
+            qf_budget_1500: 1500, qf_budget_2000: 2000, qf_budget_2500: 2500,
+            qf_budget_3000: 3000, qf_budget_3500: 3500,
+        };
+        const value = budgetMap[ctx.callbackQuery.data];
+        ctx.session.tempCriteria.criteres_stricts.budget_max = value;
+        await ctx.editMessageText(`💰 Budget : max **${value} CHF/mois**`, { parse_mode: 'Markdown' });
+        await ctx.answerCallbackQuery();
+        await proceedAfterQuickFill(ctx);
+    });
+
+    bot.callbackQuery(['qf_pieces_1', 'qf_pieces_2', 'qf_pieces_3', 'qf_pieces_4'], async (ctx) => {
+        if (ctx.session.step !== 'ONBOARDING_ASKING_MISSING' || !ctx.session.tempCriteria) return;
+        const piecesMap: Record<string, [number, number | null]> = {
+            qf_pieces_1: [1, 1], qf_pieces_2: [2, 2], qf_pieces_3: [3, 3], qf_pieces_4: [4, null],
+        };
+        const [min, max] = piecesMap[ctx.callbackQuery.data];
+        ctx.session.tempCriteria.criteres_stricts.nombre_pieces_min = min;
+        ctx.session.tempCriteria.criteres_stricts.nombre_pieces_max = max;
+        const label = min === 4 ? '4+ pièces' : `${min} pièce${min > 1 ? 's' : ''}`;
+        await ctx.editMessageText(`🏠 ${label}`, { parse_mode: 'Markdown' });
+        await ctx.answerCallbackQuery();
+        await proceedAfterQuickFill(ctx);
+    });
+
+    bot.callbackQuery('qf_pieces_any', async (ctx) => {
+        if (ctx.session.step !== 'ONBOARDING_ASKING_MISSING' || !ctx.session.tempCriteria) return;
+        const l = lang(ctx);
+        ctx.session.skipPiecesAsk = true;
+        ctx.session.tempCriteria.criteres_stricts.nombre_pieces_min = null;
+        ctx.session.tempCriteria.criteres_stricts.nombre_pieces_max = null;
+        await ctx.editMessageText(l === 'en' ? '🛏 No room preference' : '🛏 Pas de préférence sur le nombre de pièces');
+        await ctx.answerCallbackQuery();
+        await proceedAfterQuickFill(ctx);
+    });
+
+    bot.callbackQuery(['qf_avail_asap', 'qf_avail_1m', 'qf_avail_2m', 'qf_avail_flexible'], async (ctx) => {
+        if (ctx.session.step !== 'ONBOARDING_ASKING_MISSING' || !ctx.session.tempCriteria) return;
+        const l = lang(ctx);
+        const availMap: Record<string, string | null> = {
+            qf_avail_asap: 'dès que possible',
+            qf_avail_1m: 'dans 1 mois',
+            qf_avail_2m: 'dans 2 mois',
+            qf_avail_flexible: null,
+        };
+        const val = availMap[ctx.callbackQuery.data];
+        ctx.session.tempCriteria.criteres_stricts.disponibilite = val;
+        ctx.session.skipAvailAsk = true;
+        const label = val ? `📅 ${val}` : (l === 'en' ? '📅 No date constraint' : '📅 Pas de contrainte de date');
+        await ctx.editMessageText(label, { parse_mode: 'Markdown' });
+        await ctx.answerCallbackQuery();
+        await proceedAfterQuickFill(ctx);
+    });
+
     // ── Market decision ─────────────────────────────────────────────────────
 
     bot.callbackQuery('market_continue', async (ctx) => {
@@ -167,6 +239,9 @@ export function registerOnboardingHandlers(bot: Bot<MyContext>) {
         ctx.session.existingCriteria = undefined;
         ctx.session.extractionRounds = undefined;
         ctx.session.originalDescription = undefined;
+        ctx.session.skipBudgetAsk = undefined;
+        ctx.session.skipPiecesAsk = undefined;
+        ctx.session.skipAvailAsk = undefined;
 
         await ctx.editMessageText(
             l === 'en'

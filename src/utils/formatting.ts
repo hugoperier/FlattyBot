@@ -1,6 +1,16 @@
 import { ExtractedCriteria } from '../services/openai.service';
 import { Lang } from '../i18n/strings';
 
+export function formatRooms(min: number | null, max: number | null, isEn: boolean): string | null {
+    if (!min && !max) return null;
+    const r = isEn ? 'rooms' : 'pièces';
+    if (min && max && min === max) return `${min} ${r}`;
+    if (min && max) return isEn ? `${min}–${max} ${r}` : `${min} à ${max} ${r}`;
+    if (min) return `${min}+ ${r}`;
+    if (max) return isEn ? `up to ${max} ${r}` : `jusqu'à ${max} ${r}`;
+    return null;
+}
+
 export function formatCriteriaSummary(criteria: ExtractedCriteria, lang: Lang = 'fr'): string {
     const stricts = criteria.criteres_stricts || {};
     const confort = criteria.criteres_confort || {};
@@ -14,7 +24,6 @@ export function formatCriteriaSummary(criteria: ExtractedCriteria, lang: Lang = 
     const missingLabel = isEn ? '⚠️ **Still missing**' : '⚠️ **Il me manque ces infos importantes**';
     const na = isEn ? 'Not specified' : 'Non spécifié';
     const allCity = isEn ? 'Whole city' : 'Toute la ville';
-    const rooms = isEn ? 'rooms' : 'pièces';
     const all = isEn ? 'All' : 'Tout';
     const avail = isEn ? 'Availability' : 'Dispo';
     const notAvail = isEn ? 'Not available' : 'Non disponible';
@@ -24,8 +33,19 @@ export function formatCriteriaSummary(criteria: ExtractedCriteria, lang: Lang = 
     msg += `${strictLabel}\n`;
     msg += `- Budget max: ${stricts.budget_max ? stricts.budget_max + ' CHF' : na}\n`;
     msg += `- ${isEn ? 'Zones' : 'Zones'}: ${stricts.zones?.length > 0 ? stricts.zones.join(', ') : allCity}\n`;
-    msg += `- ${isEn ? 'Rooms' : 'Pièces'}: ${stricts.nombre_pieces_min || '?'}-${stricts.nombre_pieces_max || '?'} ${rooms}\n`;
-    msg += `- ${isEn ? 'Type' : 'Type'}: ${stricts.type_logement?.length > 0 ? stricts.type_logement.join(', ') : all}\n`;
+
+    const roomsStr = formatRooms(stricts.nombre_pieces_min ?? null, stricts.nombre_pieces_max ?? null, isEn);
+    if (roomsStr) msg += `- ${isEn ? 'Rooms' : 'Pièces'}: ${roomsStr}\n`;
+
+    const types = stricts.type_logement || [];
+    const hasColoc = types.some((t: string) => t.includes('coloc') || t.includes('chambre'));
+    const hasAppart = types.some((t: string) => ['appart', 'studio', 'maison', 'duplex', 'loft'].some(k => t.includes(k)));
+    const typeNote = (hasAppart && !hasColoc)
+        ? (isEn ? ' _(flatshares excluded)_' : ' _(coloc/chambre exclus)_')
+        : '';
+    const typeStr = types.length > 0 ? types.join(', ') : all;
+    msg += `- ${isEn ? 'Type' : 'Type'}: ${typeStr}${typeNote}\n`;
+
     if (stricts.disponibilite) msg += `- ${avail}: ${stricts.disponibilite}\n`;
 
     const comfortLines: string[] = [];
