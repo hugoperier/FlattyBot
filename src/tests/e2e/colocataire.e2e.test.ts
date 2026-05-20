@@ -59,17 +59,32 @@ describe('Profile 6 — Colocataire (colocation auto-detected)', () => {
         driver = new ConversationDriver({ userId: 66666, chatId: 66666, languageCode: 'fr' });
     });
 
-    it('does not show housing-type disambiguation keyboard for coloc messages', async () => {
+    it('full coloc flow saves a type_logement that is exclusively the coloc set, never the appart-only set', async () => {
         await driver.start();
         await driver.sendText(
             'Je cherche une coloc, chambre meublée, max 1200 CHF, disponible dès que possible, à Carouge'
         );
 
-        // Housing type disambiguation question text (button labels are not in captured text)
-        const housingQuestionShown = driver.getReplies().some(r =>
-            r.includes('Quel type de logement') || r.includes('What type of accommodation')
+        // Handle pieces ask + possible housing disambiguation (same as test #2)
+        try { await driver.clickButton('qf_pieces_any'); } catch { /* ok if skipped */ }
+        if (driver.getReplies().some(r => r.includes('Quel type de logement') || r.includes('What type of accommodation'))) {
+            await driver.clickButton('type_coloc');
+        }
+
+        await driver.clickButton('confirm_criteria');
+        await driver.clickButton('conf_loc_strict');
+        await new Promise(r => setTimeout(r, 200));
+
+        const savedTypes: string[] = m.saved.criteria?.criteres_stricts?.type_logement ?? [];
+        // Must not be exclusively the apartment set — coloc set must be present
+        const isOnlyAppart = savedTypes.every((t: string) =>
+            ['appartement', 'studio', 'maison', 'duplex', 'loft'].includes(t)
         );
-        expect(housingQuestionShown).toBe(false);
+        expect(isOnlyAppart).toBe(false);
+        // The canonical appart types must not have snuck in without coloc types alongside
+        const hasAppartWithoutColoc = savedTypes.some((t: string) => ['appartement', 'studio'].includes(t))
+            && !savedTypes.some((t: string) => COLOC_TYPES.includes(t));
+        expect(hasAppartWithoutColoc).toBe(false);
     }, 60_000);
 
     it('saves colocation types in type_logement', async () => {

@@ -125,8 +125,8 @@ describe('Profile 1 — Decisive Expat (EN, single-round extraction)', () => {
             'Looking for a 3-room apartment in Eaux-Vives, max 2500 CHF/month, available in September'
         );
         await driver.clickButton('confirm_criteria');
-        // Accept proximity suggestions or keep strict — both paths should save
-        try { await driver.clickButton('conf_loc_all'); } catch { /* location step may skip */ }
+        // Eaux-Vives always triggers the location-suggestion step (it has neighbors in proximity.json)
+        await driver.clickButton('conf_loc_all');
         await new Promise(r => setTimeout(r, 300));
 
         expect(m.saved.criteria?.user_id).toBe(USER_ID);
@@ -139,7 +139,8 @@ describe('Profile 1 — Decisive Expat (EN, single-round extraction)', () => {
             'Looking for a 3-room apartment in Eaux-Vives, max 2500 CHF/month, available in September'
         );
         await driver.clickButton('confirm_criteria');
-        try { await driver.clickButton('conf_loc_all'); } catch { /* ok */ }
+        // Eaux-Vives always triggers the location-suggestion step
+        await driver.clickButton('conf_loc_all');
         await new Promise(r => setTimeout(r, 300));
 
         expect(m.catchup.called).toBe(true);
