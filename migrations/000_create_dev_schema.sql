@@ -71,13 +71,19 @@ CREATE TABLE IF NOT EXISTS flatscanner_dev.facebook_posts (
     post_id TEXT UNIQUE NOT NULL,
     input_data JSONB NOT NULL,
     time_posted TIMESTAMP WITH TIME ZONE NOT NULL,
-    
+
+    -- Nullable : remplies après traitement LLM (pending → processed)
     group_name TEXT NOT NULL,
-    categorie flatscanner_dev.post_category NOT NULL,
-    confiance NUMERIC(3,2) CHECK (confiance >= 0 AND confiance <= 1) NOT NULL,
-    raison_classification TEXT NOT NULL,
-    est_offre_location BOOLEAN NOT NULL,
-    
+    categorie flatscanner_dev.post_category,
+    confiance NUMERIC(3,2) CHECK (confiance >= 0 AND confiance <= 1),
+    raison_classification TEXT,
+    est_offre_location BOOLEAN,
+
+    -- Pipeline asynchrone (enricher microservice)
+    processing_status TEXT NOT NULL DEFAULT 'pending'
+        CHECK (processing_status IN ('pending', 'processed', 'failed')),
+    processing_error TEXT,
+
     processed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -93,7 +99,7 @@ CREATE TABLE IF NOT EXISTS flatscanner_dev.fb_annonces_location (
     rue TEXT,
     numero_rue TEXT,
     ville TEXT,
-    code_postal VARCHAR(4) CHECK (code_postal ~ '^[0-9]{4}$'),
+    code_postal VARCHAR(5) CHECK (code_postal ~ '^[0-9]{4,5}$'),
     quartier TEXT,
 
     -- ENRICHISSEMENT API SITG / GEOCODAGE
@@ -237,6 +243,7 @@ CREATE INDEX IF NOT EXISTS idx_facebook_posts_post_id ON flatscanner_dev.faceboo
 CREATE INDEX IF NOT EXISTS idx_facebook_posts_time_posted ON flatscanner_dev.facebook_posts(time_posted DESC);
 CREATE INDEX IF NOT EXISTS idx_facebook_posts_categorie ON flatscanner_dev.facebook_posts(categorie);
 CREATE INDEX IF NOT EXISTS idx_facebook_posts_input_data ON flatscanner_dev.facebook_posts USING GIN (input_data);
+CREATE INDEX IF NOT EXISTS idx_facebook_posts_processing_status ON flatscanner_dev.facebook_posts(processing_status);
 
 -- Annonces indexes
 CREATE INDEX IF NOT EXISTS idx_fb_annonces_location_fk ON flatscanner_dev.fb_annonces_location(facebook_post_id);
