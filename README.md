@@ -19,7 +19,8 @@ FlattyBot est un bot Telegram intelligent de recherche d'appartements à Genève
 
 ## 🚀 Fonctionnalités Clés
 
-- **Onboarding Conversationnel** : Décrivez votre recherche en langage naturel.
+- **Onboarding Conversationnel** : Décrivez votre recherche en langage naturel (🇫🇷 français / 🇬🇧 anglais).
+- **Aperçu du Marché** : Avant de valider, FlattyBot indique combien d'annonces récentes correspondent à vos critères, pour ajuster votre recherche si besoin.
 - **Support Multi-Source** : Agrégation des annonces issues de **Facebook** (via Marketplace) et des **Régies Immobilières** genevoises.
 - **Filtrage Intelligent** : Distinction automatique entre **Appartements** entiers et **Colocations**.
 - **Moteur de Localisation G-Loc** : Reconnaissance naturelle des quartiers et communes de Genève (Plainpalais, Cornavin, Eaux-Vives, etc.) via un graphe de proximité.
