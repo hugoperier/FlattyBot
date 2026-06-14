@@ -36,6 +36,20 @@ export class AlertRepository {
         return !!data;
     }
 
+    async getSentAdKeys(userId: number): Promise<Set<string>> {
+        const { data, error } = await supabase
+            .from('sent_alerts')
+            .select('annonce_id, source')
+            .eq('user_id', userId);
+
+        if (error) {
+            console.error('Error fetching sent ad keys:', error);
+            return new Set();
+        }
+
+        return new Set((data || []).map(row => `${row.source}:${row.annonce_id}`));
+    }
+
     /**
      * Get alerts for a user. By default returns only Facebook alerts (for view_alerts
      * which fetches ad details from fb_annonces_location). Pass source: 'all' to get both.

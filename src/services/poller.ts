@@ -61,29 +61,27 @@ export class PollingService {
         }
     }
 
+    private adKey(source: AdContext['source'], adId: string | number): string {
+        return `${source}:${adId}`;
+    }
+
     private async processUser(user: User, adContexts: AdContext[]) {
         const criteria = await this.userRepo.getCriteria(user.telegram_id);
         if (!criteria) return;
 
+        const sentKeys = await this.alertRepo.getSentAdKeys(user.telegram_id);
+
         for (const ctx of adContexts) {
-            const scoringAd = ctx.scoringAd;
             const adId = ctx.source === 'facebook' ? ctx.facebookAd!.id : ctx.agencyAd!.id;
+            const key = this.adKey(ctx.source, adId);
 
-            // De-duplication for all sources
-            const alreadySent = await this.alertRepo.hasAlertBeenSent(user.telegram_id, adId, ctx.source);
-            if (alreadySent) continue;
+            if (sentKeys.has(key)) continue;
 
-            // Calculate score
-            const scoreResult = this.scoringService.calculateScore(scoringAd, criteria);
-
-            // Thresholds
-            // If score > 0 (meaning strict criteria met), we consider sending
-            // But maybe we want a minimum score? The prompt says:
-            // "Critères stricts : doivent TOUS être respectés sinon score = 0 (pas d'alerte)"
-            // So if score > 0, it's a match.
+            const scoreResult = this.scoringService.calculateScore(ctx.scoringAd, criteria);
 
             if (scoreResult.score_total > 0) {
                 await this.sendAlert(user.telegram_id, ctx, scoreResult);
+                sentKeys.add(key);
             }
         }
     }
@@ -154,46 +152,52 @@ export class PollingService {
     }
 
     /**
-     * Executes a one-off scan against the last 48h of ads for a specific user,
-     * immediately after they update their criteria.
+     * Computes catchup matches for a user without sending messages.
+     * Returns the scored matches sorted by score desc (all matches, not sliced).
      */
-    async runCatchup(userTelegramId: number) {
-        const user = await this.userRepo.getUser(userTelegramId);
+    async computeCatchupMatches(userTelegramId: number): Promise<{
+        matches: Array<{ ctx: AdContext; scoreResult: ScoreResult }>;
+        totalMatches: number;
+    }> {
         const criteria = await this.userRepo.getCriteria(userTelegramId);
-        if (!user || !criteria) return;
-
-        console.log(`Running criteria catchup for user ${userTelegramId}...`);
+        if (!criteria) return { matches: [], totalMatches: 0 };
 
         const adContexts = await this.adAggregationService.getRecentAdsForCatchup(48);
-        console.log(`Catchup fetched ${adContexts.length} recent ads.`);
-
-        const validMatches = [];
+        const sentKeys = await this.alertRepo.getSentAdKeys(userTelegramId);
+        const validMatches: Array<{ ctx: AdContext; scoreResult: ScoreResult }> = [];
 
         for (const ctx of adContexts) {
-            const scoringAd = ctx.scoringAd;
             const adId = ctx.source === 'facebook' ? ctx.facebookAd!.id : ctx.agencyAd!.id;
-
-            const alreadySent = await this.alertRepo.hasAlertBeenSent(user.telegram_id, adId, ctx.source);
-            if (alreadySent) continue;
-
-            const scoreResult = this.scoringService.calculateScore(scoringAd, criteria);
-
-            // We use the same matching threshold as the main loop (> 0 meaning strict criteria met)
+            if (sentKeys.has(this.adKey(ctx.source, adId))) continue;
+            const scoreResult = this.scoringService.calculateScore(ctx.scoringAd, criteria);
             if (scoreResult.score_total > 0) {
                 validMatches.push({ ctx, scoreResult });
             }
         }
 
-        // Sort by score descending to get the best matches first
         validMatches.sort((a, b) => b.scoreResult.score_total - a.scoreResult.score_total);
+        return { matches: validMatches, totalMatches: validMatches.length };
+    }
 
-        // Send top 5 to avoid spam
+    /**
+     * Executes a one-off scan against the last 48h of ads for a specific user
+     * and sends Telegram messages with the results.
+     */
+    async runCatchup(userTelegramId: number) {
+        const user = await this.userRepo.getUser(userTelegramId);
+        if (!user) return;
+
+        console.log(`Running criteria catchup for user ${userTelegramId}...`);
+
+        const { matches: validMatches, totalMatches } = await this.computeCatchupMatches(userTelegramId);
+        console.log(`Catchup found ${totalMatches} matching ads.`);
+
         const matchesToSend = validMatches.slice(0, 5);
 
         if (matchesToSend.length > 0) {
             await bot.api.sendMessage(
                 userTelegramId,
-                `🚀 **Rattrapage**\nJ'ai trouvé ${validMatches.length} annonce(s) récente(s) qui correspondent à ta recherche ! Voici les ${matchesToSend.length} meilleures :`,
+                `🚀 **Rattrapage**\nJ'ai trouvé ${totalMatches} annonce(s) récente(s) qui correspondent à ta recherche ! Voici les ${matchesToSend.length} meilleures :`,
                 { parse_mode: 'Markdown' }
             );
 

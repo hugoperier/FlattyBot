@@ -71,13 +71,19 @@ CREATE TABLE IF NOT EXISTS flatscanner_dev.facebook_posts (
     post_id TEXT UNIQUE NOT NULL,
     input_data JSONB NOT NULL,
     time_posted TIMESTAMP WITH TIME ZONE NOT NULL,
-    
+
+    -- Nullable : remplies après traitement LLM (pending → processed)
     group_name TEXT NOT NULL,
-    categorie flatscanner_dev.post_category NOT NULL,
-    confiance NUMERIC(3,2) CHECK (confiance >= 0 AND confiance <= 1) NOT NULL,
-    raison_classification TEXT NOT NULL,
-    est_offre_location BOOLEAN NOT NULL,
-    
+    categorie flatscanner_dev.post_category,
+    confiance NUMERIC(3,2) CHECK (confiance >= 0 AND confiance <= 1),
+    raison_classification TEXT,
+    est_offre_location BOOLEAN,
+
+    -- Pipeline asynchrone (enricher microservice)
+    processing_status TEXT NOT NULL DEFAULT 'pending'
+        CHECK (processing_status IN ('pending', 'processed', 'failed')),
+    processing_error TEXT,
+
     processed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -93,7 +99,7 @@ CREATE TABLE IF NOT EXISTS flatscanner_dev.fb_annonces_location (
     rue TEXT,
     numero_rue TEXT,
     ville TEXT,
-    code_postal VARCHAR(4) CHECK (code_postal ~ '^[0-9]{4}$'),
+    code_postal VARCHAR(5) CHECK (code_postal ~ '^[0-9]{4,5}$'),
     quartier TEXT,
 
     -- ENRICHISSEMENT API SITG / GEOCODAGE
@@ -151,10 +157,51 @@ CREATE TABLE IF NOT EXISTS flatscanner_dev.fb_annonces_location (
     UNIQUE(facebook_post_id)
 );
 
+-- 5.5. Tables unifiées et partagées
+CREATE TABLE IF NOT EXISTS flatscanner_dev.annonces (
+    id UUID PRIMARY KEY,
+    title TEXT,
+    monthly_gross_price NUMERIC(10,2),
+    monthly_charges NUMERIC(10,2),
+    monthly_net_price NUMERIC(10,2),
+    monthly_price NUMERIC(10,2),
+    description TEXT,
+    surface_m2 NUMERIC(10,2),
+    available_date DATE,
+    number_rooms NUMERIC(4,1),
+    address TEXT,
+    car_park BOOLEAN,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    source_url TEXT,
+    image_urls JSONB,
+    listing_type TEXT,
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
+    currency VARCHAR(10),
+    transaction_type TEXT,
+    balcony BOOLEAN,
+    land_surface_m2 NUMERIC(10,2),
+    sale_price NUMERIC(10,2),
+    is_user_listing BOOLEAN,
+    
+    regie TEXT,
+    source_id TEXT NOT NULL,
+    
+    inserted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    CONSTRAINT unq_annonces_source_regie UNIQUE (source_id, regie)
+);
+
 -- 6. FlattyBot specific tables (users, user_criteria, sent_alerts)
 
 CREATE TABLE IF NOT EXISTS flatscanner_dev.users (
     telegram_id BIGINT PRIMARY KEY,
+    first_name TEXT,
+    last_name TEXT,
+    username TEXT,
+    language_code TEXT,
+    referral_code TEXT,
     is_active BOOLEAN DEFAULT TRUE,
     is_paused BOOLEAN DEFAULT FALSE,
     onboarding_completed BOOLEAN DEFAULT FALSE,
@@ -196,6 +243,7 @@ CREATE INDEX IF NOT EXISTS idx_facebook_posts_post_id ON flatscanner_dev.faceboo
 CREATE INDEX IF NOT EXISTS idx_facebook_posts_time_posted ON flatscanner_dev.facebook_posts(time_posted DESC);
 CREATE INDEX IF NOT EXISTS idx_facebook_posts_categorie ON flatscanner_dev.facebook_posts(categorie);
 CREATE INDEX IF NOT EXISTS idx_facebook_posts_input_data ON flatscanner_dev.facebook_posts USING GIN (input_data);
+CREATE INDEX IF NOT EXISTS idx_facebook_posts_processing_status ON flatscanner_dev.facebook_posts(processing_status);
 
 -- Annonces indexes
 CREATE INDEX IF NOT EXISTS idx_fb_annonces_location_fk ON flatscanner_dev.fb_annonces_location(facebook_post_id);
@@ -206,13 +254,25 @@ CREATE INDEX IF NOT EXISTS idx_fb_annonces_location_geom ON flatscanner_dev.fb_a
 
 -- FlattyBot indexes
 CREATE INDEX IF NOT EXISTS idx_users_is_active ON flatscanner_dev.users(is_active);
+CREATE INDEX IF NOT EXISTS idx_users_referral_code ON flatscanner_dev.users(referral_code);
 CREATE INDEX IF NOT EXISTS idx_sent_alerts_user_id ON flatscanner_dev.sent_alerts(user_id);
 CREATE INDEX IF NOT EXISTS idx_sent_alerts_annonce_id ON flatscanner_dev.sent_alerts(annonce_id);
+
+-- Additional indexes
+CREATE INDEX IF NOT EXISTS idx_annonces_created_at ON flatscanner_dev.annonces(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_annonces_regie ON flatscanner_dev.annonces(regie);
+CREATE INDEX IF NOT EXISTS idx_annonces_transaction_type ON flatscanner_dev.annonces(transaction_type);
 
 -- 8. Trigger de mise à jour
 DROP TRIGGER IF EXISTS update_fb_annonces_location_updated_at ON flatscanner_dev.fb_annonces_location;
 CREATE TRIGGER update_fb_annonces_location_updated_at
     BEFORE UPDATE ON flatscanner_dev.fb_annonces_location
+    FOR EACH ROW
+    EXECUTE FUNCTION flatscanner_dev.update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_annonces_updated_at ON flatscanner_dev.annonces;
+CREATE TRIGGER update_annonces_updated_at
+    BEFORE UPDATE ON flatscanner_dev.annonces
     FOR EACH ROW
     EXECUTE FUNCTION flatscanner_dev.update_updated_at_column();
 

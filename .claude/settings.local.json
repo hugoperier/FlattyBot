@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(npm test *)",
+      "Bash(NODE_ENV=development npx vitest *)",
+      "Bash(npx vitest *)"
+    ]
+  }
+}

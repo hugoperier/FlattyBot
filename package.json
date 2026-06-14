@@ -4,7 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "ts-node src/tests/run_tests.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:integration": "vitest run 'src/tests/**/*.integration.test.ts'",
+    "test:e2e": "NODE_ENV=development vitest run --config vitest-e2e.config.ts",
+    "e2e:pull-snapshot": "NODE_ENV=development ts-node tests/cli/pull-db-snapshot.ts",
     "start": "NODE_ENV=production ts-node src/index.ts",
     "build": "tsc",
     "dev": "NODE_ENV=development nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts",
@@ -25,6 +30,8 @@
     "winston": "^3.18.3"
   },
   "devDependencies": {
-    "nodemon": "^3.1.11"
+    "@vitest/coverage-v8": "^3.2.4",
+    "nodemon": "^3.1.11",
+    "vitest": "^3.2.4"
   }
 }

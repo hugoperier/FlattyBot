@@ -62,7 +62,7 @@ export class AdAggregationService {
         if (this.lastAgencyCreatedAt) {
             agencySinceIso = this.lastAgencyCreatedAt;
         } else {
-            const cutoff = new Date(now.getTime() - facebookHours * 60 * 60 * 1000 * 100).toISOString();
+            const cutoff = new Date(now.getTime() - facebookHours * 60 * 60 * 1000).toISOString();
             agencySinceIso = cutoff;
         }
 

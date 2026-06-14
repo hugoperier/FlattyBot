@@ -17,6 +17,7 @@ export interface AgencyAd {
     number_rooms: number | null;
     address: string | null;
     car_park: boolean | null;
+    /** Immutable first-seen timestamp (set once at INSERT via DB DEFAULT). */
     created_at: string;
     source_url: string | null;
     /**
@@ -36,6 +37,8 @@ export interface AgencyAd {
     is_user_listing: boolean | null;
     regie: string | null;
     source_id: string | null;
+    /** false when the listing was no longer seen during the last scraper run. */
+    is_active: boolean;
 }
 
 export class AgencyAdRepository {
@@ -51,6 +54,7 @@ export class AgencyAdRepository {
             .from('annonces')
             .select('*')
             .eq('transaction_type', 'rental')
+            .eq('is_active', true)   // exclure les annonces retirées du marché
             .gt('created_at', createdAfterIso)
             .order('created_at', { ascending: true });
 
